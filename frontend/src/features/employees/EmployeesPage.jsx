@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmployeeStatsCards } from './components/EmployeeStatsCards';
 import { EmployeeFilters } from './components/EmployeeFilters';
@@ -12,15 +13,9 @@ import { employeesMockData } from '@/mocks/data/employees.mock';
 
 /**
  * EmployeesPage — the main "Employees" screen.
- *
- * Owns THREE pieces of UI state beyond filters:
- *  - formModal: { open, employee } — employee is null for "Add",
- *    populated for "Edit". A single modal instance handles both modes
- *    (see EmployeeFormModal's isEditMode logic).
- *  - deleteTarget: the employee pending deletion, or null. Its mere
- *    presence controls whether ConfirmDialog is open.
  */
 export function EmployeesPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({ search: '', department: 'all' });
   const [formModal, setFormModal] = useState({ open: false, employee: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -35,10 +30,10 @@ export function EmployeesPage() {
 
   const handleAddClick = () => setFormModal({ open: true, employee: null });
   const handleEditClick = (employee) => setFormModal({ open: true, employee });
+
+  // Now navigates to the real Employee Record page instead of logging.
   const handleViewClick = (employee) => {
-    // Full navigation to EmployeeRecordPage (/employees/$employeeId)
-    // will be wired once that route exists — next module of work.
-    console.log('Navigate to employee record:', employee.id);
+    navigate({ to: '/employees/$employeeId', params: { employeeId: employee.id } });
   };
 
   const handleConfirmDelete = () => {
@@ -72,15 +67,12 @@ export function EmployeesPage() {
         )}
       </div>
 
-      {/* Add/Edit form modal — single instance, mode controlled by
-          whether formModal.employee is set */}
       <EmployeeFormModal
         open={formModal.open}
         onOpenChange={(open) => setFormModal({ open, employee: open ? formModal.employee : null })}
         employee={formModal.employee}
       />
 
-      {/* Delete confirmation — deleteTarget's presence IS the open state */}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}

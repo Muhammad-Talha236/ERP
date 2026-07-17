@@ -3,24 +3,20 @@ import { cn } from '@/lib/utils';
 
 /**
  * StatCard — a single summary metric card, used across every
- * module's page header row (Employees, Attendance, Materials, Wages).
- *
- * Matches the Dashboard Cards spec in the UI/UX doc: icon, label,
- * value, with an optional colored icon-background accent (matched
- * to the metric's meaning — e.g. green for "Active", amber for
- * "On Leave" — passed in by the parent, not hardcoded here).
+ * module's page header row.
  *
  * @param {Object} props
- * @param {string} props.label - e.g. "Total", "Active", "On Leave"
- * @param {string|number} props.value - the metric itself, e.g. 8
- * @param {React.ComponentType} [props.icon] - Lucide icon component
+ * @param {string} props.label
+ * @param {string|number} props.value
+ * @param {React.ComponentType} [props.icon]
  * @param {'primary'|'success'|'warning'|'danger'|'info'} [props.accent]
  */
 export function StatCard({ label, value, icon: Icon, accent = 'primary', className }) {
   return (
     <div
       className={cn(
-        'flex-1 min-w-[180px] rounded-card border border-border bg-background p-lg',
+        // p-6 = Tailwind's default 24px, replacing the removed custom "p-lg" token
+        'flex-1 min-w-[180px] rounded-card border border-border bg-background p-6',
         className
       )}
     >
@@ -44,11 +40,6 @@ export function StatCard({ label, value, icon: Icon, accent = 'primary', classNa
   );
 }
 
-/**
- * accentStyles — background/text color combos for the icon circle,
- * keyed by semantic accent name. Defined outside the component so
- * it isn't recreated on every render.
- */
 const accentStyles = {
   primary: 'bg-primary/15 text-primary',
   success: 'bg-success/15 text-success',

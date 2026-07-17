@@ -1,17 +1,20 @@
 /* ---------------------------------------------------------- */
-/* 1. Tailwind v4 single import — replaces the old             */
-/*    @tailwind base/components/utilities directives            */
+/* 1. Tailwind v4 single import                                 */
 /* ---------------------------------------------------------- */
 @import "tailwindcss";
 
 /* ---------------------------------------------------------- */
 /* 2. Design tokens available as Tailwind utilities             */
-/*    (e.g. --color-surface below auto-generates bg-surface,   */
-/*    text-surface, border-surface, etc.)                       */
 /*                                                               */
-/*    We point every token at a CSS variable (defined further   */
-/*    below for light/dark) so ONE class like `bg-surface`      */
-/*    automatically adapts when the .dark class toggles.        */
+/*    IMPORTANT: we do NOT redefine spacing here anymore.       */
+/*    Tailwind's own default spacing/sizing scale (used by      */
+/*    p-*, gap-*, max-w-*, rounded-*, text-* etc.) must stay    */
+/*    untouched — earlier we accidentally overrode --spacing-3xl*/
+/*    with a custom 64px value, which silently broke max-w-3xl  */
+/*    (and any other utility sharing that "3xl" scale key)      */
+/*    across the whole app. Custom tokens below use distinctive */
+/*    names (color-*, radius-button, radius-card, etc.) that    */
+/*    do NOT collide with any of Tailwind's reserved scale keys.*/
 /* ---------------------------------------------------------- */
 @theme {
   --color-background: var(--app-background);
@@ -25,25 +28,15 @@
   --color-primary-hover: var(--app-primary-hover);
   --color-primary-light: var(--app-primary-light);
 
-  /* Status colors — fixed across both themes per the design doc */
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #0ea5e9;
 
-  /* Font family */
   --font-sans: "Inter", "Roboto", "Helvetica", "Arial", sans-serif;
 
-  /* 8-point spacing system */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --spacing-3xl: 64px;
-
-  /* Border radius tokens */
+  /* Border radius tokens — safe, distinctive names, no collision
+     with Tailwind's own rounded-sm/md/lg/xl/2xl/3xl scale */
   --radius-button: 8px;
   --radius-input: 8px;
   --radius-card: 12px;
@@ -68,8 +61,6 @@
 
 /* ---------------------------------------------------------- */
 /* 4. Actual color values — DARK MODE                           */
-/*    Applied when <html> has the .dark class                   */
-/*    (toggled later by our ThemeToggle component)               */
 /* ---------------------------------------------------------- */
 .dark {
   --app-background: #0f172a;
@@ -88,7 +79,6 @@
 /* 5. Global base styles                                         */
 /* ---------------------------------------------------------- */
 html {
-  /* Smooths the color flip when toggling themes */
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
