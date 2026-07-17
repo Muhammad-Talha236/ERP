@@ -1,7 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
 import { EmployeesPage } from '@/features/employees/EmployeesPage';
 import { EmployeeRecordPage } from '@/features/employees/EmployeeRecordPage';
-
+import { AttendancePage } from '@/features/attendence/AttendancePage';
 /**
  * Root route — simple pass-through. Each page calls its own
  * <AppLayout title="..." subtitle="..."> individually.
@@ -54,11 +54,21 @@ const employeeRecordRoute = createRoute({
   path: '/employees/$employeeId',
   component: EmployeeRecordPage,
 });
+/**
+ * /attendance — the Attendance module page.
+ */
+const attendanceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/attendance',
+  component: AttendancePage,
+});
+
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   employeesRoute,
   employeeRecordRoute,
+  attendanceRoute,
 ]);
 
 export const router = createRouter({ routeTree });
