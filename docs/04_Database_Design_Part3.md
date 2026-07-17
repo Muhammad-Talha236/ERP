@@ -462,12 +462,461 @@ Advantages:
 
 # Next Section
 
-The next section will cover:
+# 5. Employee Assignments
 
-- Employee Assignments
-- Bundle Tracking
-- Stage History
-- Production Logs
-- Workflow Expenses
-- Kanban Board
-- Complete Production ER Diagram
+## Purpose
+
+The Employee Assignments table links employees to specific workflow stages.
+
+Instead of assigning an employee to an entire Purchase Order, employees are assigned to individual production stages.
+
+This enables:
+
+- Better workload distribution
+- Productivity tracking
+- Employee performance analysis
+- Stage ownership
+- Accountability
+
+---
+
+## Workflow Example
+
+```text
+Purchase Order #PO-1001
+
+↓
+
+Cutting
+      ↓
+      Ali
+
+↓
+
+Stitching
+      ↓
+      Ahmed
+
+↓
+
+Embroidery
+      ↓
+      Sara
+
+↓
+
+Quality Check
+      ↓
+      Fatima
+```
+
+---
+
+## Table Structure
+
+| Column | Type | Description |
+|---------|------|-------------|
+| id | UUID | Primary Key |
+| tenant_id | UUID | Factory |
+| workflow_instance_id | UUID | Workflow Instance |
+| workflow_stage_id | UUID | Workflow Stage |
+| employee_id | UUID | Assigned Employee |
+| assigned_at | TIMESTAMP | Assignment Time |
+| started_at | TIMESTAMP | Work Started |
+| completed_at | TIMESTAMP | Work Completed |
+| assignment_status | ENUM | Pending, Working, Completed |
+| remarks | TEXT | Notes |
+
+---
+
+## Relationships
+
+```mermaid
+erDiagram
+
+WORKFLOW_INSTANCES ||--o{ EMPLOYEE_ASSIGNMENTS : contains
+
+WORKFLOW_STAGES ||--o{ EMPLOYEE_ASSIGNMENTS : assigned
+
+EMPLOYEES ||--o{ EMPLOYEE_ASSIGNMENTS : performs
+```
+
+---
+
+## Business Rules
+
+- One assignment belongs to one workflow stage.
+- Multiple employees may work on the same stage.
+- An employee cannot have duplicate active assignments for the same stage.
+- Assignment status updates automatically based on progress.
+
+---
+
+# 6. Production Bundles
+
+## Purpose
+
+Factories rarely move an entire order through production at once.
+
+Instead, they divide large orders into smaller bundles.
+
+Example:
+
+Purchase Order
+
+```
+5,000 Shirts
+```
+
+↓
+
+Bundles
+
+```
+Bundle A → 500
+
+Bundle B → 500
+
+Bundle C → 500
+
+...
+
+Bundle J → 500
+```
+
+Each bundle progresses independently.
+
+---
+
+## Benefits
+
+- Faster production tracking
+- Easier workload balancing
+- Better quality control
+- Simplified issue isolation
+
+---
+
+## Table Structure
+
+| Column | Type | Description |
+|---------|------|-------------|
+| id | UUID | Primary Key |
+| tenant_id | UUID | Factory |
+| workflow_instance_id | UUID | Workflow |
+| bundle_number | VARCHAR(50) | Bundle Identifier |
+| quantity | INTEGER | Items in Bundle |
+| current_stage_id | UUID | Current Stage |
+| status | ENUM | Pending, In Progress, Completed |
+| created_at | TIMESTAMP | Creation Time |
+
+---
+
+## Example Records
+
+| Bundle | Quantity | Current Stage |
+|---------|---------:|---------------|
+| B001 | 500 | Cutting |
+| B002 | 500 | Stitching |
+| B003 | 500 | Packing |
+
+---
+
+## Relationships
+
+```mermaid
+erDiagram
+
+WORKFLOW_INSTANCES ||--o{ PRODUCTION_BUNDLES : contains
+
+WORKFLOW_STAGES ||--o{ PRODUCTION_BUNDLES : current_stage
+```
+
+---
+
+## Business Rules
+
+- Bundle quantity must be greater than zero.
+- Bundle numbers must be unique within a workflow.
+- A completed bundle cannot move backward.
+- Every bundle belongs to one workflow instance.
+
+---
+
+# 7. Stage History
+
+## Purpose
+
+Every stage transition should be recorded.
+
+This creates a complete production history.
+
+---
+
+## Example
+
+```text
+Bundle B001
+
+↓
+
+Material Allocation
+
+↓
+
+Cutting
+
+↓
+
+Stitching
+
+↓
+
+Quality Check
+
+↓
+
+Packing
+
+↓
+
+Completed
+```
+
+---
+
+## Table Structure
+
+| Column | Type | Description |
+|---------|------|-------------|
+| id | UUID | Primary Key |
+| bundle_id | UUID | Production Bundle |
+| stage_id | UUID | Workflow Stage |
+| employee_id | UUID | Completed By |
+| started_at | TIMESTAMP | Start Time |
+| completed_at | TIMESTAMP | Finish Time |
+| duration_minutes | INTEGER | Total Duration |
+| remarks | TEXT | Notes |
+
+---
+
+## Business Rules
+
+- History cannot be modified after completion.
+- Every stage transition creates one history record.
+- Duration is calculated automatically.
+
+---
+
+# 8. Production Logs
+
+## Purpose
+
+Production logs capture operational events during manufacturing.
+
+Examples:
+
+- Production started
+- Production paused
+- Machine breakdown
+- Material shortage
+- Quality issue
+- Bundle completed
+
+---
+
+## Table Structure
+
+| Column | Type | Description |
+|---------|------|-------------|
+| id | UUID | Primary Key |
+| tenant_id | UUID | Factory |
+| workflow_instance_id | UUID | Workflow |
+| bundle_id | UUID | Bundle |
+| employee_id | UUID | Employee |
+| log_type | ENUM | Event Type |
+| message | TEXT | Event Description |
+| created_at | TIMESTAMP | Event Time |
+
+---
+
+## Example Logs
+
+| Time | Event |
+|------|-------|
+| 08:00 | Bundle Started |
+| 09:15 | Material Shortage |
+| 10:05 | Material Received |
+| 12:30 | Cutting Completed |
+
+---
+
+# 9. Workflow Expenses
+
+## Purpose
+
+Tracks production-related expenses that are not part of raw material costs.
+
+Examples:
+
+- Machine maintenance
+- Electricity
+- Packaging
+- Transportation
+- Outsourcing
+- Miscellaneous
+
+---
+
+## Table Structure
+
+| Column | Type | Description |
+|---------|------|-------------|
+| id | UUID | Primary Key |
+| workflow_instance_id | UUID | Workflow |
+| expense_type | VARCHAR(100) | Expense Category |
+| amount | DECIMAL(12,2) | Expense Amount |
+| description | TEXT | Notes |
+| expense_date | DATE | Date |
+
+---
+
+## Example Records
+
+| Expense | Amount |
+|----------|-------:|
+| Electricity | 12,500 |
+| Packaging | 8,000 |
+| Machine Repair | 25,000 |
+
+---
+
+# 10. Complete Production ER Diagram
+
+```mermaid
+erDiagram
+
+PURCHASE_ORDERS ||--o{ WORKFLOW_INSTANCES : creates
+
+WORKFLOW_TEMPLATES ||--o{ WORKFLOW_STAGES : contains
+
+WORKFLOW_INSTANCES ||--o{ PRODUCTION_BUNDLES : contains
+
+WORKFLOW_INSTANCES ||--o{ EMPLOYEE_ASSIGNMENTS : assigns
+
+PRODUCTION_BUNDLES ||--o{ STAGE_HISTORY : tracks
+
+PRODUCTION_BUNDLES ||--o{ PRODUCTION_LOGS : generates
+
+EMPLOYEES ||--o{ EMPLOYEE_ASSIGNMENTS : performs
+
+EMPLOYEES ||--o{ STAGE_HISTORY : completes
+
+WORKFLOW_INSTANCES ||--o{ WORKFLOW_EXPENSES : incurs
+```
+
+---
+
+# 11. Production Workflow Lifecycle
+
+```mermaid
+flowchart LR
+
+PurchaseOrder
+
+-->
+
+Workflow
+
+-->
+
+Bundle
+
+-->
+
+Employee Assignment
+
+-->
+
+Production
+
+-->
+
+Stage Completion
+
+-->
+
+Quality Check
+
+-->
+
+Packing
+
+-->
+
+Completed
+```
+
+---
+
+# 12. Design Decisions
+
+## Why Use Production Bundles?
+
+Large orders become easier to manage when split into smaller units.
+
+Advantages:
+
+- Parallel production
+- Faster completion
+- Easier quality inspection
+- Better employee tracking
+- Improved reporting
+
+---
+
+## Why Record Stage History?
+
+Instead of storing only the current stage, historical data provides:
+
+- Production timelines
+- Delay analysis
+- Employee performance metrics
+- Audit trails
+- Process improvement opportunities
+
+---
+
+## Summary
+
+The Production module now supports:
+
+- ✅ Workflow Templates
+- ✅ Workflow Stages
+- ✅ Workflow Instances
+- ✅ Employee Assignments
+- ✅ Production Bundles
+- ✅ Stage History
+- ✅ Production Logs
+- ✅ Workflow Expenses
+
+This design enables end-to-end production tracking from Purchase Order creation to final completion while maintaining detailed operational history and supporting future analytics.
+
+---
+
+# Next Document
+
+**`04_Database_Design_Part4.md`**
+
+The next part will cover:
+
+- Customer Management
+- Purchase Orders
+- Purchase Order Items
+- Accounts
+- Revenue
+- Expenses
+- Transactions
+- Financial Reports
+- Profit & Loss
+- Financial ER Diagram

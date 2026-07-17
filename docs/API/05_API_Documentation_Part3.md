@@ -557,16 +557,3 @@ These endpoints manage the complete employee lifecycle, from hiring and attendan
 ---
 
 # Next Document
-
-## API Documentation (Part 4)
-
-The next part will cover:
-
-- Inventory APIs
-- Material Categories APIs
-- Raw Materials APIs
-- Supplier APIs
-- Purchase APIs
-- Stock Transaction APIs
-- Material Usage APIs
-- Inventory Dashboard APIs
