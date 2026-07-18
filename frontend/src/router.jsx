@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/re
 import { EmployeesPage } from '@/features/employees/EmployeesPage';
 import { EmployeeRecordPage } from '@/features/employees/EmployeeRecordPage';
 import { AttendancePage } from '@/features/attendence/AttendancePage';
+import { MaterialsPage } from '@/features/materials/MaterialsPage';
 /**
  * Root route — simple pass-through. Each page calls its own
  * <AppLayout title="..." subtitle="..."> individually.
@@ -63,12 +64,20 @@ const attendanceRoute = createRoute({
   component: AttendancePage,
 });
 
-
+/**
+ * /materials — the Materials (Raw Material) module page.
+ */
+const materialsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/materials',
+  component: MaterialsPage,
+});
 const routeTree = rootRoute.addChildren([
   indexRoute,
   employeesRoute,
   employeeRecordRoute,
   attendanceRoute,
+  materialsRoute,
 ]);
 
 export const router = createRouter({ routeTree });
