@@ -85,3 +85,32 @@ html {
 body {
   @apply bg-background text-text-primary font-sans antialiased;
 }
+/* ---------------------------------------------------------- */
+/* 6. Custom scrollbar — themed to match light/dark mode        */
+/*    instead of the browser's default (always-white) scrollbar */
+/* ---------------------------------------------------------- */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-border)) transparent;
+}
+
+/* Chrome, Edge, Brave, Safari (WebKit-based browsers) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border));
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--color-text-secondary));
+}

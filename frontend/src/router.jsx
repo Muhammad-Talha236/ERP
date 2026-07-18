@@ -4,7 +4,7 @@ import { EmployeeRecordPage } from '@/features/employees/EmployeeRecordPage';
 import { AttendancePage } from '@/features/attendence/AttendancePage';
 import { MaterialsPage } from '@/features/materials/MaterialsPage';
 import { DailyUsagePage } from '@/features/daily-usage/DailyUsagePage';
-
+import { WagesPage } from '@/features/wages/WagesPage';
 
 
 /**
@@ -82,6 +82,11 @@ const dailyUsageRoute = createRoute({
   path: '/daily-usage',
   component: DailyUsagePage,
 });
+const wagesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/wages',
+  component: WagesPage,
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -90,6 +95,8 @@ const routeTree = rootRoute.addChildren([
   attendanceRoute,
   materialsRoute,
   dailyUsageRoute,
+  wagesRoute,
+
 ]);
 
 export const router = createRouter({ routeTree });

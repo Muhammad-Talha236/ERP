@@ -18,12 +18,12 @@ import { persist } from 'zustand/middleware';
 export const useThemeStore = create(
   persist(
     (set, get) => ({
-      theme: 'dark', // default theme, matches your design screenshots
+      theme: 'light', // default theme, matches your design screenshots
 
       setTheme: (theme) => set({ theme }),
 
       toggleTheme: () =>
-        set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
+        set({ theme: get().theme === 'light' ? 'dark' : 'light' }),
     }),
     {
       name: 'theme-storage', // localStorage key
