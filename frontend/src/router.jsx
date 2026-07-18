@@ -3,6 +3,10 @@ import { EmployeesPage } from '@/features/employees/EmployeesPage';
 import { EmployeeRecordPage } from '@/features/employees/EmployeeRecordPage';
 import { AttendancePage } from '@/features/attendence/AttendancePage';
 import { MaterialsPage } from '@/features/materials/MaterialsPage';
+import { DailyUsagePage } from '@/features/daily-usage/DailyUsagePage';
+
+
+
 /**
  * Root route — simple pass-through. Each page calls its own
  * <AppLayout title="..." subtitle="..."> individually.
@@ -72,12 +76,20 @@ const materialsRoute = createRoute({
   path: '/materials',
   component: MaterialsPage,
 });
+
+const dailyUsageRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/daily-usage',
+  component: DailyUsagePage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   employeesRoute,
   employeeRecordRoute,
   attendanceRoute,
   materialsRoute,
+  dailyUsageRoute,
 ]);
 
 export const router = createRouter({ routeTree });
