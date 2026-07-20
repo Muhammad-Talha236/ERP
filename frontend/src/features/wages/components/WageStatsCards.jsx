@@ -3,25 +3,20 @@ import { StatCard } from '@/components/ui/StatCard';
 import { format } from 'date-fns';
 
 /**
- * WageStatsCards — "Total payroll / Pending payments / Paid this
- * month" summary row at the top of the Wages page.
+ * WageStatsCards — payroll summary row.
  *
- * All three figures are computed from the wages array passed in,
- * guaranteeing they always match the table below.
+ * "Pending payments" now sums the REMAINING balance across all
+ * records (netAmount - amountPaid), not just records with a
+ * Pending status — this correctly includes partially-paid records'
+ * unpaid portion too.
  *
  * @param {Object} props
  * @param {WageRecord[]} props.wages
  */
 export function WageStatsCards({ wages }) {
   const totalPayroll = wages.reduce((sum, w) => sum + w.netAmount, 0);
-
-  const pendingPayments = wages
-    .filter((w) => w.paymentStatus === 'Pending' || w.paymentStatus === 'Processing')
-    .reduce((sum, w) => sum + w.netAmount, 0);
-
-  const paidThisMonth = wages
-    .filter((w) => w.paymentStatus === 'Paid')
-    .reduce((sum, w) => sum + w.netAmount, 0);
+  const pendingPayments = wages.reduce((sum, w) => sum + (w.netAmount - w.amountPaid), 0);
+  const paidThisMonth = wages.reduce((sum, w) => sum + w.amountPaid, 0);
 
   const monthLabel = format(new Date(), 'MMM');
 

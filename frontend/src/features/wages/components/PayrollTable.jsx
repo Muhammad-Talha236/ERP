@@ -7,17 +7,14 @@ import { Wallet } from 'lucide-react';
 const COLUMNS = ['EMPLOYEE', 'DEPARTMENT', 'BASE', 'OVERTIME', 'DEDUCTIONS', 'NET', 'STATUS', ''];
 
 /**
- * PayrollTable — payroll table body (no outer card wrapper —
- * WagesPage supplies that).
+ * PayrollTable — payroll table body.
  *
  * @param {Object} props
  * @param {WageRecord[]} props.wages
  * @param {boolean} props.isLoading
- * @param {(id: string) => void} props.onPayClick
- * @param {string|null} props.payingId - id of the wage record
- *        currently being paid, so ONLY that row shows a loading state
+ * @param {(wage: WageRecord) => void} props.onPayClick
  */
-export function PayrollTable({ wages, isLoading, onPayClick, payingId }) {
+export function PayrollTable({ wages, isLoading, onPayClick }) {
   if (isLoading) {
     return <LoadingSkeleton rows={5} />;
   }
@@ -38,10 +35,7 @@ export function PayrollTable({ wages, isLoading, onPayClick, payingId }) {
         <thead>
           <tr className="border-b border-border">
             {COLUMNS.map((col) => (
-              <th
-                key={col}
-                className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wide py-3"
-              >
+              <th key={col} className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wide py-3">
                 {col}
               </th>
             ))}
@@ -49,12 +43,7 @@ export function PayrollTable({ wages, isLoading, onPayClick, payingId }) {
         </thead>
         <tbody>
           {wages.map((wage) => (
-            <PayrollRow
-              key={wage.id}
-              wage={wage}
-              onPayClick={onPayClick}
-              isPaying={payingId === wage.id}
-            />
+            <PayrollRow key={wage.id} wage={wage} onPayClick={onPayClick} />
           ))}
         </tbody>
       </table>
@@ -66,5 +55,4 @@ PayrollTable.propTypes = {
   wages: PropTypes.array,
   isLoading: PropTypes.bool,
   onPayClick: PropTypes.func.isRequired,
-  payingId: PropTypes.string,
 };

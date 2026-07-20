@@ -4,18 +4,18 @@
  * @typedef {Object} WageRecord
  * @property {string} id
  * @property {string} employeeId
- * @property {string} employeeName    - denormalized for display
- * @property {string} department      - denormalized for display
- * @property {string} payPeriodStart  - ISO date string
- * @property {string} payPeriodEnd    - ISO date string
+ * @property {string} employeeName
+ * @property {string} department
+ * @property {string} payPeriodStart
+ * @property {string} payPeriodEnd
  * @property {'Daily'|'Monthly'|'Piece Rate'} salaryType
  * @property {number} grossAmount
  * @property {number} overtimeAmount
  * @property {number} deductions
- * @property {number} advances
- * @property {number} netAmount
- * @property {'Pending'|'Partial'|'Paid'|'Processing'} paymentStatus
- * @property {string|null} paymentDate
+ * @property {number} netAmount        - TOTAL payable for this period
+ * @property {number} amountPaid       - cumulative amount paid so far (partial or full, including advances given this period)
+ * @property {'Pending'|'Partial'|'Paid'} paymentStatus - DERIVED from amountPaid vs netAmount, kept in sync by the mock handler on every payment
+ * @property {string|null} paymentDate - date of the MOST RECENT payment, or null if nothing paid yet
  */
 
 export const wagesMockData = [
@@ -30,8 +30,8 @@ export const wagesMockData = [
     grossAmount: 5166,
     overtimeAmount: 320,
     deductions: 480,
-    advances: 0,
     netAmount: 5006,
+    amountPaid: 5006, // fully paid
     paymentStatus: 'Paid',
     paymentDate: '2026-07-31',
   },
@@ -46,8 +46,8 @@ export const wagesMockData = [
     grossAmount: 5916,
     overtimeAmount: 210,
     deductions: 540,
-    advances: 0,
     netAmount: 5586,
+    amountPaid: 5586,
     paymentStatus: 'Paid',
     paymentDate: '2026-07-31',
   },
@@ -62,8 +62,8 @@ export const wagesMockData = [
     grossAmount: 4833,
     overtimeAmount: 0,
     deductions: 420,
-    advances: 0,
     netAmount: 4413,
+    amountPaid: 0, // nothing paid yet
     paymentStatus: 'Pending',
     paymentDate: null,
   },
@@ -78,10 +78,10 @@ export const wagesMockData = [
     grossAmount: 3833,
     overtimeAmount: 280,
     deductions: 320,
-    advances: 0,
     netAmount: 3793,
-    paymentStatus: 'Processing',
-    paymentDate: null,
+    amountPaid: 1500, // PARTIAL example — 1500 paid, 2293 still pending
+    paymentStatus: 'Partial',
+    paymentDate: '2026-07-20',
   },
   {
     id: 'wage-005',
@@ -94,8 +94,8 @@ export const wagesMockData = [
     grossAmount: 4500,
     overtimeAmount: 190,
     deductions: 380,
-    advances: 0,
     netAmount: 4310,
+    amountPaid: 4310,
     paymentStatus: 'Paid',
     paymentDate: '2026-07-31',
   },
@@ -110,9 +110,9 @@ export const wagesMockData = [
     grossAmount: 3500,
     overtimeAmount: 410,
     deductions: 290,
-    advances: 0,
     netAmount: 3620,
-    paymentStatus: 'Pending',
-    paymentDate: null,
+    amountPaid: 500, // PARTIAL example — small advance-like payment given
+    paymentStatus: 'Partial',
+    paymentDate: '2026-07-05',
   },
 ];

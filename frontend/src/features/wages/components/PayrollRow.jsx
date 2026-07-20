@@ -6,18 +6,17 @@ import { getWageStatusVariant } from '../utils/wageStatusVariant';
 /**
  * PayrollRow — a single row in the payroll table.
  *
- * Includes a per-row "Pay" action, visible only when the record's
- * status is Pending or Processing — this is the admin's control to
- * pay ONE employee at a time, instead of a blanket bulk action.
+ * Single "Pay" action opens PayWageModal, where the admin chooses
+ * Payment vs Advance from the Type dropdown inside the form itself —
+ * no separate button needed since the dropdown already covers both.
  *
  * @param {Object} props
  * @param {WageRecord} props.wage
- * @param {(id: string) => void} props.onPayClick
- * @param {boolean} props.isPaying - true only while THIS row's
- *        payment is in flight, so other rows' buttons stay usable
+ * @param {(wage: WageRecord) => void} props.onPayClick
  */
-export function PayrollRow({ wage, onPayClick, isPaying }) {
-  const canPay = wage.paymentStatus === 'Pending' || wage.paymentStatus === 'Processing';
+export function PayrollRow({ wage, onPayClick }) {
+  const remaining = wage.netAmount - wage.amountPaid;
+  const canPay = remaining > 0;
 
   return (
     <tr className="border-b border-border last:border-0">
@@ -30,19 +29,19 @@ export function PayrollRow({ wage, onPayClick, isPaying }) {
       <td className="py-4 text-sm text-danger">-${wage.deductions.toLocaleString()}</td>
       <td className="py-4 text-sm font-semibold text-text-primary">
         ${wage.netAmount.toLocaleString()}
+        {wage.paymentStatus === 'Partial' && (
+          <span className="block text-xs font-normal text-text-secondary">
+            ${remaining.toLocaleString()} remaining
+          </span>
+        )}
       </td>
       <td className="py-4">
         <Badge variant={getWageStatusVariant(wage.paymentStatus)}>{wage.paymentStatus}</Badge>
       </td>
       <td className="py-4 text-right">
         {canPay && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPayClick(wage.id)}
-            disabled={isPaying}
-          >
-            {isPaying ? 'Paying...' : 'Pay'}
+          <Button variant="outline" size="sm" onClick={() => onPayClick(wage)}>
+            Pay
           </Button>
         )}
       </td>
@@ -53,5 +52,4 @@ export function PayrollRow({ wage, onPayClick, isPaying }) {
 PayrollRow.propTypes = {
   wage: PropTypes.object.isRequired,
   onPayClick: PropTypes.func.isRequired,
-  isPaying: PropTypes.bool,
 };

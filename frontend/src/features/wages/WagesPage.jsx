@@ -2,22 +2,14 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { WageStatsCards } from './components/WageStatsCards';
 import { PayrollTable } from './components/PayrollTable';
+import { PayWageModal } from './components/PayWageModal';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { useWages } from './hooks/useWages';
-import { useMarkWageAsPaid } from './hooks/useMarkWageAsPaid';
 import { format } from 'date-fns';
 
-/**
- * WagesPage — the main "Wages" screen.
- *
- * Payment is now controlled PER EMPLOYEE via the "Pay" button on
- * each row (useMarkWageAsPaid), not a single bulk action — this
- * matches real payroll behavior where paying one employee should
- * never affect another employee's payment status.
- */
 export function WagesPage() {
   const { data: wages, isLoading, isError, refetch } = useWages();
-  const { mutate: payWage, isPending, variables: payingId } = useMarkWageAsPaid();
+  const [payModal, setPayModal] = useState({ open: false, wage: null });
 
   const monthLabel = format(new Date(), 'MMMM');
 
@@ -43,12 +35,17 @@ export function WagesPage() {
             <PayrollTable
               wages={wages}
               isLoading={isLoading}
-              onPayClick={(id) => payWage(id)}
-              payingId={isPending ? payingId : null}
+              onPayClick={(wage) => setPayModal({ open: true, wage })}
             />
           </div>
         </div>
       </div>
+
+      <PayWageModal
+        open={payModal.open}
+        onOpenChange={(open) => setPayModal({ open, wage: open ? payModal.wage : null })}
+        wage={payModal.wage}
+      />
     </AppLayout>
   );
 }
