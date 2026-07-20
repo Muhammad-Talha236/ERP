@@ -5,6 +5,7 @@ import { AttendancePage } from '@/features/attendence/AttendancePage';
 import { MaterialsPage } from '@/features/materials/MaterialsPage';
 import { DailyUsagePage } from '@/features/daily-usage/DailyUsagePage';
 import { WagesPage } from '@/features/wages/WagesPage';
+import { PurchaseOrdersPage } from '@/features/purchase-orders/PurchaseOrdersPage';
 
 
 /**
@@ -76,7 +77,14 @@ const materialsRoute = createRoute({
   path: '/materials',
   component: MaterialsPage,
 });
-
+/**
+ * /purchase-orders — the Purchase Orders module page.
+ */
+const purchaseOrdersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/purchase-orders',
+  component: PurchaseOrdersPage,
+});
 const dailyUsageRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/daily-usage',
@@ -96,6 +104,7 @@ const routeTree = rootRoute.addChildren([
   materialsRoute,
   dailyUsageRoute,
   wagesRoute,
+  purchaseOrdersRoute,
 
 ]);
 

@@ -50,3 +50,18 @@ export const GENDER = Object.freeze({
   FEMALE: 'Female',
   OTHER: 'Other',
 });
+
+// --- Add to the existing enums.js file, alongside EMPLOYEE_STATUS etc. ---
+
+export const PO_STATUS = Object.freeze({
+  DRAFT: 'Draft',
+  SENT: 'Sent',
+  RECEIVED: 'Received',
+  CANCELLED: 'Cancelled',
+});
+
+export const PO_PAYMENT_STATUS = Object.freeze({
+  UNPAID: 'Unpaid',
+  PARTIAL: 'Partial',
+  PAID: 'Paid',
+});

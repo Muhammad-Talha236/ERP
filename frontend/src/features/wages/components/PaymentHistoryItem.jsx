@@ -5,23 +5,27 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { useUpdatePayment } from '../hooks/useUpdatePayment';
+import { useUpdatePayment } from '@/features/wages/hooks/useUpdatePayment';
+import { useUpdatePOPayment } from '@/features/purchase-orders/hooks/useUpdatePOPayment';
 
 /**
- * PaymentHistoryItem — a single row in the payment history list,
- * with an inline edit mode for correcting the amount or remarks
- * after the fact.
+ * PaymentHistoryItem — a single payment/advance transaction row,
+ * with inline editing. Shared between Wages and Purchase Orders
+ * since both modules track payments/advances identically.
  *
  * @param {Object} props
- * @param {PaymentTransaction} props.entry
+ * @param {PaymentTransaction|POPaymentTransaction} props.entry
+ * @param {'wage'|'po'} [props.scope] - which update hook to call
  */
-export function PaymentHistoryItem({ entry }) {
+export function PaymentHistoryItem({ entry, scope = 'wage' }) {
   const [isEditing, setIsEditing] = useState(false);
   const [amount, setAmount] = useState(entry.amount);
   const [remarks, setRemarks] = useState(entry.remarks ?? '');
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const { mutate: updatePayment, isPending } = useUpdatePayment();
+  const wageUpdate = useUpdatePayment();
+  const poUpdate = useUpdatePOPayment();
+  const { mutate: updatePayment, isPending } = scope === 'po' ? poUpdate : wageUpdate;
 
   const handleSave = () => {
     setErrorMessage(null);
@@ -45,18 +49,8 @@ export function PaymentHistoryItem({ entry }) {
     return (
       <div className="rounded-input border border-primary/40 px-4 py-3 space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Amount"
-            type="number"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <Input
-            label="Remarks"
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-          />
+          <Input label="Amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <Input label="Remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
         </div>
         {errorMessage && <p className="text-xs text-danger">{errorMessage}</p>}
         <div className="flex justify-end gap-2">
@@ -80,15 +74,9 @@ export function PaymentHistoryItem({ entry }) {
         </div>
         {entry.remarks && <p className="text-xs text-text-secondary mt-0.5">{entry.remarks}</p>}
       </div>
-
       <div className="flex items-center gap-3">
         <p className="text-xs text-text-secondary">{format(new Date(entry.date), 'MMM d, yyyy')}</p>
-        <button
-          type="button"
-          onClick={() => setIsEditing(true)}
-          className="text-text-secondary hover:text-primary transition-colors"
-          aria-label="Edit payment"
-        >
+        <button type="button" onClick={() => setIsEditing(true)} className="text-text-secondary hover:text-primary transition-colors" aria-label="Edit payment">
           <Pencil size={14} />
         </button>
       </div>
@@ -98,4 +86,5 @@ export function PaymentHistoryItem({ entry }) {
 
 PaymentHistoryItem.propTypes = {
   entry: PropTypes.object.isRequired,
+  scope: PropTypes.oneOf(['wage', 'po']),
 };
