@@ -6,7 +6,7 @@ import { MaterialsPage } from '@/features/materials/MaterialsPage';
 import { DailyUsagePage } from '@/features/daily-usage/DailyUsagePage';
 import { WagesPage } from '@/features/wages/WagesPage';
 import { PurchaseOrdersPage } from '@/features/purchase-orders/PurchaseOrdersPage';
-
+import { ProductionPage } from '@/features/production/ProductionPage';
 
 /**
  * Root route — simple pass-through. Each page calls its own
@@ -95,6 +95,13 @@ const wagesRoute = createRoute({
   path: '/wages',
   component: WagesPage,
 });
+/**
+ * /production — the Production module page.
+ */
+const productionRoute = createRoute({
+   getParentRoute: () => rootRoute, path: 
+   '/production', component: ProductionPage
+   });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -105,7 +112,7 @@ const routeTree = rootRoute.addChildren([
   dailyUsageRoute,
   wagesRoute,
   purchaseOrdersRoute,
-
+ productionRoute,
 ]);
 
 export const router = createRouter({ routeTree });

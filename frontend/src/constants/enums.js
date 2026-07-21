@@ -65,3 +65,24 @@ export const PO_PAYMENT_STATUS = Object.freeze({
   PARTIAL: 'Partial',
   PAID: 'Paid',
 });
+// --- Add to enums.js ---
+
+export const PRODUCTION_ORDER_STATUS = Object.freeze({
+  PENDING: 'Pending',
+  IN_PROGRESS: 'In Progress',
+  QUALITY_CHECK: 'Quality Check',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+});
+
+export const STAGE_STATUS = Object.freeze({
+  NOT_STARTED: 'Not Started',
+  IN_PROGRESS: 'In Progress',
+  COMPLETED: 'Completed',
+});
+
+export const PRIORITY = Object.freeze({
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+});
