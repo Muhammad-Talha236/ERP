@@ -7,7 +7,7 @@ import { DailyUsagePage } from '@/features/daily-usage/DailyUsagePage';
 import { WagesPage } from '@/features/wages/WagesPage';
 import { PurchaseOrdersPage } from '@/features/purchase-orders/PurchaseOrdersPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
-
+import { AccountsPage } from '@/features/accounts/AccountsPage';
 /**
  * Root route — simple pass-through. Each page calls its own
  * <AppLayout title="..." subtitle="..."> individually.
@@ -103,6 +103,12 @@ const productionRoute = createRoute({
    '/production', component: ProductionPage
    });
 
+/**
+ * /accounts — the Accounts module page.
+ */
+const accountsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/accounts', component: AccountsPage });
+
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   employeesRoute,
@@ -113,6 +119,7 @@ const routeTree = rootRoute.addChildren([
   wagesRoute,
   purchaseOrdersRoute,
  productionRoute,
+ accountsRoute,
 ]);
 
 export const router = createRouter({ routeTree });
