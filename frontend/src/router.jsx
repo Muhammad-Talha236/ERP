@@ -8,108 +8,84 @@ import { WagesPage } from '@/features/wages/WagesPage';
 import { PurchaseOrdersPage } from '@/features/purchase-orders/PurchaseOrdersPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
 import { AccountsPage } from '@/features/accounts/AccountsPage';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { LoginPage } from '@/features/auth/LoginPage';
+import { SignupPage } from '@/features/auth/SignupPage';
+import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 /**
  * Root route — simple pass-through. Each page calls its own
  * <AppLayout title="..." subtitle="..."> individually.
  */
-const rootRoute = createRootRoute({
-  component: () => <Outlet />,
-});
+const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
-/**
- * Temporary index route ("/") — placeholder until a real Dashboard
- * page exists (outside your assigned modules).
- */
+// --- Public routes: no ProtectedRoute wrapper ---
+const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage });
+const signupRoute = createRoute({ getParentRoute: () => rootRoute, path: '/signup', component: SignupPage });
+
+// --- Protected routes: every existing page now wrapped ---
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-text-primary">Dashboard</h1>
-      <p className="text-text-secondary mt-2">Coming soon.</p>
-    </div>
-  ),
+  component: () => <ProtectedRoute><DashboardPage /></ProtectedRoute>,
 });
 
-/**
- * /employees — the employee list/table page.
- */
 const employeesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/employees',
-  component: EmployeesPage,
+  component: () => <ProtectedRoute><EmployeesPage /></ProtectedRoute>,
 });
 
-/**
- * /employees/$employeeId — the individual employee detail page.
- *
- * IMPORTANT FIX: this is now a SIBLING of employeesRoute (both are
- * children of rootRoute), not a nested child of employeesRoute.
- *
- * Why: EmployeeRecordPage renders its own full <AppLayout> from
- * scratch — it's a completely independent page, not UI meant to
- * appear "inside" EmployeesPage. Nesting it under employeesRoute
- * would require EmployeesPage to render an <Outlet /> for the child
- * to display into, which it doesn't (and shouldn't) have.
- *
- * The full path '/employees/$employeeId' is written out directly
- * here since this route's parent is rootRoute, not employeesRoute.
- */
 const employeeRecordRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/employees/$employeeId',
-  component: EmployeeRecordPage,
+  component: () => <ProtectedRoute><EmployeeRecordPage /></ProtectedRoute>,
 });
-/**
- * /attendance — the Attendance module page.
- */
+
 const attendanceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/attendance',
-  component: AttendancePage,
+  component: () => <ProtectedRoute><AttendancePage /></ProtectedRoute>,
 });
 
-/**
- * /materials — the Materials (Raw Material) module page.
- */
 const materialsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/materials',
-  component: MaterialsPage,
+  component: () => <ProtectedRoute><MaterialsPage /></ProtectedRoute>,
 });
-/**
- * /purchase-orders — the Purchase Orders module page.
- */
-const purchaseOrdersRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/purchase-orders',
-  component: PurchaseOrdersPage,
-});
+
 const dailyUsageRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/daily-usage',
-  component: DailyUsagePage,
+  component: () => <ProtectedRoute><DailyUsagePage /></ProtectedRoute>,
 });
+
 const wagesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/wages',
-  component: WagesPage,
+  component: () => <ProtectedRoute><WagesPage /></ProtectedRoute>,
 });
-/**
- * /production — the Production module page.
- */
+
+const purchaseOrdersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/Stock-orders',
+  component: () => <ProtectedRoute><PurchaseOrdersPage /></ProtectedRoute>,
+});
+
 const productionRoute = createRoute({
-   getParentRoute: () => rootRoute, path: 
-   '/production', component: ProductionPage
-   });
+  getParentRoute: () => rootRoute,
+  path: '/production',
+  component: () => <ProtectedRoute><ProductionPage /></ProtectedRoute>,
+});
 
-/**
- * /accounts — the Accounts module page.
- */
-const accountsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/accounts', component: AccountsPage });
-
+const accountsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/accounts',
+  component: () => <ProtectedRoute><AccountsPage /></ProtectedRoute>,
+});
 
 const routeTree = rootRoute.addChildren([
+  loginRoute,
+  signupRoute,
   indexRoute,
   employeesRoute,
   employeeRecordRoute,
@@ -118,8 +94,8 @@ const routeTree = rootRoute.addChildren([
   dailyUsageRoute,
   wagesRoute,
   purchaseOrdersRoute,
- productionRoute,
- accountsRoute,
+  productionRoute,
+  accountsRoute,
 ]);
 
 export const router = createRouter({ routeTree });
