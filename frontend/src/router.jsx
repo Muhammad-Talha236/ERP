@@ -10,8 +10,11 @@ import { ProductionPage } from '@/features/production/ProductionPage';
 import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { LoginPage } from '@/features/auth/LoginPage';
-import { SignupPage } from '@/features/auth/SignupPage';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
+import { SuperAdminPage } from '@/features/super-admin/SuperAdminPage';
+
+
+
 /**
  * Root route — simple pass-through. Each page calls its own
  * <AppLayout title="..." subtitle="..."> individually.
@@ -20,7 +23,12 @@ const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
 // --- Public routes: no ProtectedRoute wrapper ---
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage });
-const signupRoute = createRoute({ getParentRoute: () => rootRoute, path: '/signup', component: SignupPage });
+
+const superAdminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/super-admin',
+  component: () => <ProtectedRoute requiredRole="SuperAdmin"><SuperAdminPage /></ProtectedRoute>,
+});
 
 // --- Protected routes: every existing page now wrapped ---
 const indexRoute = createRoute({
@@ -85,7 +93,7 @@ const accountsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  signupRoute,
+   superAdminRoute,
   indexRoute,
   employeesRoute,
   employeeRecordRoute,

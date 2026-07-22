@@ -7,9 +7,6 @@ let users = [...usersMockData];
 
 /**
  * Simulates POST /api/v1/auth/login
- *
- * @param {{ email: string, password: string }} credentials
- * @returns {Promise<{ user: Omit<User, 'password'>, accessToken: string }>}
  */
 export async function login({ email, password }) {
   await wait(DELAY_MS);
@@ -20,8 +17,6 @@ export async function login({ email, password }) {
     throw new Error('Invalid email or password.');
   }
 
-  // Never return the password field, even in mock data — mirrors
-  // the real API's documented behavior of never exposing password hashes.
   const { password: _password, ...safeUser } = user;
 
   return {
@@ -31,40 +26,26 @@ export async function login({ email, password }) {
 }
 
 /**
- * Simulates POST /api/v1/auth/signup
- *
- * New signups are ALWAYS created as 'Admin' role (Factory Admin) —
- * SuperAdmin accounts are provisioned separately by the platform,
- * never through public signup, matching real-world SaaS practice.
- *
- * @param {{ firstName, lastName, email, password, companyName }} formData
- * @returns {Promise<{ user: Omit<User, 'password'>, accessToken: string }>}
+ * INTERNAL — used by tenant.mock.js when Super Admin creates a new
+ * factory + admin. Not exposed as a public "signup" endpoint; only
+ * ever called from the Super Admin's Create Factory flow.
+ * @param {{ firstName, lastName, email, password, tenantId, tenantName }} adminData
+ * @returns {User}
  */
-export async function signup(formData) {
-  await wait(DELAY_MS);
-
-  const existing = users.find((u) => u.email.toLowerCase() === formData.email.toLowerCase());
-  if (existing) {
-    throw new Error('An account with this email already exists.');
-  }
-
+export function _createAdminUser(adminData) {
   const newUser = {
     id: `user-${Date.now()}`,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    email: formData.email,
-    password: formData.password,
     role: 'Admin',
-    tenantId: `tenant-${Date.now()}`,
-    tenantName: formData.companyName,
+    ...adminData,
   };
-
   users = [...users, newUser];
+  return newUser;
+}
 
-  const { password: _password, ...safeUser } = newUser;
-
-  return {
-    user: safeUser,
-    accessToken: `mock-token-${newUser.id}-${Date.now()}`,
-  };
+/**
+ * Exposed so tenant.mock.js can check for duplicate emails when
+ * Super Admin creates a new admin account.
+ */
+export function _emailExists(email) {
+  return users.some((u) => u.email.toLowerCase() === email.toLowerCase());
 }
