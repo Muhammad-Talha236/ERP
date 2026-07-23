@@ -4,12 +4,12 @@ import PropTypes from 'prop-types';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useUpdateOrderWorkflowStep } from '../hooks/useUpdateOrderWorkflowStep';
-import { useUpdateProductionOrderStage } from '../hooks/useUpdateProductionOrderStage';
-import { deriveOrderProgress } from '../utils/deriveOrderProgress';
+import { useUpdateProductionOrderStage } from '../../Purchaseorder/hooks/useUpdateProductionOrderStage';
+import { deriveOrderProgress } from '../../Purchaseorder/utils/deriveOrderProgress';
 import { StageAssignmentPanel } from './StageAssignmentPanel';
 import { QualityCheckPanel } from './QualityCheckPanel';
 
-/**
+/** 
  * OrderStepsTable — this order's own editable workflow steps.
  *
  * Only the CURRENTLY ACTIVE stage (first not-Completed, in order)

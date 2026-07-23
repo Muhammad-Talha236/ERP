@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/Badge';
-import { getProductionOrderStatusVariant } from '@/features/production/utils/productionOrderStatusVariant';
+import { getProductionOrderStatusVariant } from '@/features/Purchaseorder/utils/productionOrderStatusVariant';
 
 const COLUMNS = ['ORDER', 'PRODUCT', 'ASSIGNEE', 'DUE', 'PROGRESS', 'STATUS'];
 

@@ -5,14 +5,15 @@ import { AttendancePage } from '@/features/attendence/AttendancePage';
 import { MaterialsPage } from '@/features/materials/MaterialsPage';
 import { DailyUsagePage } from '@/features/daily-usage/DailyUsagePage';
 import { WagesPage } from '@/features/wages/WagesPage';
-import { PurchaseOrdersPage } from '@/features/purchase-orders/PurchaseOrdersPage';
-import { ProductionPage } from '@/features/production/ProductionPage';
+import { StockOrderpage } from '@/features/stockOrder/StockOrderpage';
+import { PurchasePage } from '@/features/Purchaseorder/PurchasePage';
 import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { SuperAdminPage } from '@/features/super-admin/SuperAdminPage';
-
+import { KanbanPage } from '@/features/kanban/KanbanPage';
+import { WorkflowPage } from '@/features/workflow/WorkflowPage';
 
 
 /**
@@ -73,17 +74,20 @@ const wagesRoute = createRoute({
   component: () => <ProtectedRoute><WagesPage /></ProtectedRoute>,
 });
 
-const purchaseOrdersRoute = createRoute({
+const stockOrdersRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/Stock-orders',
-  component: () => <ProtectedRoute><PurchaseOrdersPage /></ProtectedRoute>,
+  path: '/StockOrders',
+  component: () => <ProtectedRoute><StockOrderpage /></ProtectedRoute>,
 });
 
-const productionRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/production',
-  component: () => <ProtectedRoute><ProductionPage /></ProtectedRoute>,
-});
+
+const purchaseRoute = 
+createRoute({ getParentRoute: 
+  () => rootRoute, path: '/Purchase', component:
+   () => <ProtectedRoute><PurchasePage /></ProtectedRoute>
+   });
+const kanbanRoute = createRoute({ getParentRoute: () => rootRoute, path: '/kanban', component: () => <ProtectedRoute><KanbanPage /></ProtectedRoute> });
+const workflowRoute = createRoute({ getParentRoute: () => rootRoute, path: '/workflow', component: () => <ProtectedRoute><WorkflowPage /></ProtectedRoute> });
 
 const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -101,8 +105,10 @@ const routeTree = rootRoute.addChildren([
   materialsRoute,
   dailyUsageRoute,
   wagesRoute,
-  purchaseOrdersRoute,
-  productionRoute,
+  stockOrdersRoute,
+  purchaseRoute,
+   kanbanRoute,
+  workflowRoute,
   accountsRoute,
 ]);
 

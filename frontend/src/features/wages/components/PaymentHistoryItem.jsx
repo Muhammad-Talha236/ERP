@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUpdatePayment } from '@/features/wages/hooks/useUpdatePayment';
-import { useUpdatePOPayment } from '@/features/purchase-orders/hooks/useUpdatePOPayment';
+import { useUpdatePOPayment } from '@/features/stockOrder/hooks/useUpdatePOPayment';
 
 /**
  * PaymentHistoryItem — a single payment/advance transaction row,

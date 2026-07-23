@@ -3,7 +3,7 @@ import { Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { getPOStatusVariant, getPOPaymentVariant } from '../utils/purchaseOrderStatusVariant';
+import { getPOStatusVariant, getPOPaymentVariant } from '../utils/stockOrderStatusVariant';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ShoppingCart } from 'lucide-react';

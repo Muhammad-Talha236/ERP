@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { useStageAssignments } from '../hooks/useStageAssignments';
+import { useStageAssignments } from '@/features/workflow/hooks/useStageAssignments';
 import { useAddStageAssignment } from '../hooks/useAddStageAssignment';
 import { useCompleteStageAssignment } from '../hooks/useCompleteStageAssignment';
 import { useUpdateOrderWorkflowStep } from '../hooks/useUpdateOrderWorkflowStep';
@@ -14,7 +14,7 @@ import { useState } from 'react';
  * StageAssignmentPanel — shows every employee individually assigned
  * to ONE step, each with their own "mark my work done" action.
  *
- * Core rule: the step itself only becomes "Completed" once EVERY
+ * Core rule: the step itself only becom  es "Completed" once EVERY
  * assignment under it is done. This component checks that condition
  * after each individual completion and, if satisfied, updates the
  * parent OrderWorkflowStep's status — which is what then lets

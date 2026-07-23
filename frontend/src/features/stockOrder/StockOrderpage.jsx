@@ -7,9 +7,9 @@ import { POFormModal } from './components/POFormModal';
 import { PODetailModal } from './components/PODetailModal';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { Button } from '@/components/ui/Button';
-import { usePurchaseOrders } from './hooks/usePurchaseOrders';
+import { usePurchaseOrders } from './hooks/usestockorder';
 
-export function PurchaseOrdersPage() {
+export function StockOrderpage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [detailModal, setDetailModal] = useState({ open: false, po: null });
 
@@ -24,7 +24,7 @@ export function PurchaseOrdersPage() {
   }
 
   return (
-    <AppLayout title="Purchase Orders" subtitle="Manage suppliers and invoices">
+    <AppLayout title="Stock Orders" subtitle="Manage suppliers and invoices">
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <POStatsCards purchaseOrders={purchaseOrders ?? []} />

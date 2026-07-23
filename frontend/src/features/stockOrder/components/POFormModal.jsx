@@ -5,7 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { useCreatePurchaseOrder } from '../hooks/useCreatePurchaseOrder';
+import { useCreatePurchaseOrder } from '../hooks/useCreatestockOrder';
 
 /**
  * poSchema — validates the New PO form. Every item must have a

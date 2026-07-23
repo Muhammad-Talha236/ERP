@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/Badge';
-import { getPriorityVariant } from '../utils/productionOrderStatusVariant';
+import { getPriorityVariant } from '../../Purchaseorder/utils/productionOrderStatusVariant';
 
 /**
  * ProductionOrderCard — a single order card inside a Kanban column.
