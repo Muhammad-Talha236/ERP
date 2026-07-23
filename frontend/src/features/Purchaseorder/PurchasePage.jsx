@@ -1,24 +1,22 @@
 import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductionStatsCards } from './components/ProductionStatsCards';
 import { OrdersTable } from './components/OrdersTable';
 import { NewOrderFormModal } from './components/NewOrderFormModal';
-import { OrderOverviewModal } from '@/features/workflow/components/OrderOverviewModal';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { useProductionOrders } from './hooks/useProductionOrders';
 
 /**
- * ProductionPage — "O  rders" screen: create and list customer
- * production orders. The live status board (Kanban) and detailed
- * workflow management (steps/bundles/movements) now live on their
- * own separate pages (/kanban and /workflow) per team's request to
- * split these into distinct sections.
+ * PurchasePage — "Orders" screen: create and list customer
+ * purchase orders. "View" now navigates straight to the Workflow
+ * page (no separate overview modal) since that's where all the
+ * useful order detail actually lives.
  */
 export function PurchasePage() {
+  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [viewModal, setViewModal] = useState({ open: false, order: null });
-
   const { data: orders, isLoading, isError, refetch } = useProductionOrders();
 
   if (isError) {
@@ -40,17 +38,11 @@ export function PurchasePage() {
         <OrdersTable
           orders={orders}
           isLoading={isLoading}
-          onViewClick={(order) => setViewModal({ open: true, order })}
+          onViewClick={() => navigate({ to: '/workflow' })}
         />
       </div>
 
       <NewOrderFormModal open={isFormOpen} onOpenChange={setIsFormOpen} />
-
-      <OrderOverviewModal
-        open={viewModal.open}
-        onOpenChange={(open) => setViewModal({ open, order: open ? viewModal.order : null })}
-        order={viewModal.order}
-      />
     </AppLayout>
   );
 }

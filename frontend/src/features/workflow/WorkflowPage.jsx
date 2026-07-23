@@ -1,114 +1,75 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useSearch } from '@tanstack/react-router';
-import { AlertTriangle } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Select } from '@/components/ui/Select';
-import { Badge } from '@/components/ui/Badge';
-import { cn } from '@/lib/utils';
+import { OrderWorkflowSection } from './components/OrderWorkflowSection';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
-import { OrderStepsTable } from '@/features/workflow/components/OrderStepsTable';
-import { BundleList } from '@/features/workflow/components/BundleList';
-import { OrderMovementLog } from '@/features/workflow/components/OrderMovementLog';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { GitBranch } from 'lucide-react';
 import { useProductionOrders } from '@/features/Purchaseorder/hooks/useProductionOrders';
-import { useOrderWorkflowSteps } from '@/features/workflow/hooks/useOrderWorkflowSteps';
-import { useBundlesByOrder } from '@/features/workflow/hooks/useBundlesByOrder';
-import { useOrderMovements } from '@/features/workflow/hooks/useOrderMovements';
-
-const TABS = ['Workflow Steps', 'Bundles', 'Movement Log'];
 
 /**
- * WorkflowPage — the workflow management screen (PO Flow Steps 4-5-7):
- * per-order editable steps, bundle assignment/tracking, and the
- * movement log. Split out from Production's detail modal into its
- * own dedicated page per team's request.
+ * WorkflowPage — manage stages, bundles, and employee assignments
+ * for every active order, split into two groups instead of a
+ * dropdown selector:
  *
- * The order to manage is picked via a dropdown, pre-selected from
- * the URL's ?orderId= search param when navigated here from the
- * Orders/Kanban pages' "Manage Workflow" button.
+ *  - "Needs Setup": orders where NOT A SINGLE step has an assigned
+ *    employee yet (nothing has started).
+ *  - "In Progress": orders where at least one step already has
+ *    someone assigned — actively being worked.
+ *
+ * Completed/Cancelled orders are excluded — nothing left to manage.
+ * Clicking an order expands it inline (no modal, no separate page
+ * navigation) to show its Workflow Steps / Bundles / Movement Log tabs.
  */
 export function WorkflowPage() {
-  const search = useSearch({ strict: false });
-  const { data: orders, isLoading: isOrdersLoading } = useProductionOrders();
+  const { data: orders, isLoading } = useProductionOrders();
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
-  const [selectedOrderId, setSelectedOrderId] = useState(search?.orderId ?? '');
-  const [activeTab, setActiveTab] = useState('Workflow Steps');
-
-  // Sync selection if we arrive here later with a different ?orderId=
-  useEffect(() => {
-    if (search?.orderId) setSelectedOrderId(search.orderId);
-  }, [search?.orderId]);
-
-  const selectedOrder = useMemo(
-    () => (orders ?? []).find((o) => o.id === selectedOrderId) ?? null,
-    [orders, selectedOrderId]
+  const activeOrders = useMemo(
+    () => (orders ?? []).filter((o) => o.status !== 'Completed' && o.status !== 'Cancelled'),
+    [orders]
   );
 
-  const { data: steps, isLoading: isStepsLoading } = useOrderWorkflowSteps(selectedOrderId);
-  const { data: bundles, isLoading: isBundlesLoading } = useBundlesByOrder(selectedOrderId);
-  const { data: movements, isLoading: isMovementsLoading } = useOrderMovements(selectedOrderId);
+  if (isLoading) {
+    return (
+      <AppLayout title="Workflow" subtitle="Manage stages, bundles, and employee assignments">
+        <LoadingSkeleton rows={4} />
+      </AppLayout>
+    );
+  }
 
-  const activeStep = useMemo(() => {
-    if (!steps) return null;
-    return [...steps].sort((a, b) => a.stageOrder - b.stageOrder).find((s) => s.status !== 'Completed') ?? null;
-  }, [steps]);
+  if (activeOrders.length === 0) {
+    return (
+      <AppLayout title="Workflow" subtitle="Manage stages, bundles, and employee assignments">
+        <EmptyState
+          icon={GitBranch}
+          title="No active orders"
+          description="Orders will appear here once created and until they're completed."
+        />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Workflow" subtitle="Manage stages, bundles, and employee assignments">
-      <div className="space-y-6">
-        <div className="rounded-card border border-border bg-background p-6">
-          <Select
-            label="Select an order to manage"
-            value={selectedOrderId}
-            onChange={(e) => setSelectedOrderId(e.target.value)}
-            options={[
-              { label: isOrdersLoading ? 'Loading orders...' : 'Select an order', value: '' },
-              ...(orders ?? []).map((o) => ({ label: `${o.poNumber} — ${o.productName}`, value: o.id })),
-            ]}
-          />
-        </div>
+      <div className="space-y-8">
+        <OrderWorkflowSection
+          title="Needs Setup"
+          description="No employees assigned yet — nothing has started."
+          orders={activeOrders}
+          filterFn="unassigned"
+          expandedOrderId={expandedOrderId}
+          onToggleExpand={setExpandedOrderId}
+        />
 
-        {!selectedOrder ? (
-          <p className="text-sm text-text-secondary text-center py-12">
-            Select an order above to view and manage its workflow.
-          </p>
-        ) : (
-          <>
-            {activeStep && !activeStep.assignedEmployeeId && (
-              <div className="flex items-center gap-2 rounded-input border-l-4 border-l-warning border border-border bg-warning/10 px-4 py-3">
-                <AlertTriangle size={16} className="text-warning shrink-0" />
-                <p className="text-sm text-text-primary">
-                  <span className="font-semibold">{activeStep.stageName}</span> stage has no employee assigned yet.
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-1 border-b border-border">
-              {TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    'px-3 py-2 text-sm font-medium border-b-2 transition-colors',
-                    activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === 'Workflow Steps' && (
-              isStepsLoading ? <LoadingSkeleton rows={4} /> : <OrderStepsTable steps={steps ?? []} order={selectedOrder} />
-            )}
-            {activeTab === 'Bundles' && (
-              isBundlesLoading ? <LoadingSkeleton rows={3} /> : <BundleList bundles={bundles ?? []} steps={steps ?? []} />
-            )}
-            {activeTab === 'Movement Log' && (
-              <OrderMovementLog movements={movements} isLoading={isMovementsLoading} />
-            )}
-          </>
-        )}
+        <OrderWorkflowSection
+          title="In Progress"
+          description="At least one stage already has an assigned employee."
+          orders={activeOrders}
+          filterFn="assigned"
+          expandedOrderId={expandedOrderId}
+          onToggleExpand={setExpandedOrderId}
+        />
       </div>
     </AppLayout>
   );
-}   
+}
