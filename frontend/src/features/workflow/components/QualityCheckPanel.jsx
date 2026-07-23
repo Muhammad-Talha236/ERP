@@ -3,8 +3,7 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { useApproveQualityCheck, useRejectQualityCheck } from '@/features/Purchaseorder/hooks/useQualityCheckAction';
-
+import { useApproveQualityCheck, useRejectQualityCheck } from "@/features/workflow/hooks/useQualityCheckAction";
 /**
  * QualityCheckPanel — admin-only verification gate for the Quality
  * Check stage. Unlike other stages (where individual employees mark
