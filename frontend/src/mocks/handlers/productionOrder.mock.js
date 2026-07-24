@@ -266,3 +266,41 @@ export async function rejectQualityCheck(stepId) {
 
   return orderWorkflowSteps.find((s) => s.id === stepId);
 }
+
+/**
+ * Simulates PUT /api/v1/purchase-orders/{orderId}/steps/structure
+ *
+ * Replaces an order's ENTIRE step structure — used only when the
+ * order hasn't started yet (enforced by the calling component, not
+ * here, though a real backend should also enforce this server-side).
+ * Unlike updateOrderWorkflowStep (which edits ONE existing step's
+ * numbers), this handles add/remove/rename/reposition all at once
+ * by wiping and rewriting the full step list for this order.
+ *
+ * @param {string} orderId
+ * @param {Array} steps - the new full list, already user-ordered by position
+ * @returns {Promise<OrderWorkflowStep[]>}
+ */
+export async function replaceOrderWorkflowStructure(orderId, steps) {
+  await wait(DELAY_MS);
+
+  const sorted = [...steps].sort((a, b) => a.position - b.position);
+
+  const newSteps = sorted.map((s, index) => ({
+    id: s.id ?? `ows-${Date.now()}-${index}`,
+    orderId,
+    stageName: s.stageName,
+    stageOrder: index + 1,
+    expense: s.expense,
+    wagePerPerson: s.wagePerPerson,
+    headcount: s.headcount,
+    assignedEmployeeId: null,
+    assignedEmployeeName: null,
+    status: 'Not Started',
+  }));
+
+  // Remove this order's old steps entirely, replace with the new set.
+  orderWorkflowSteps = orderWorkflowSteps.filter((s) => s.orderId !== orderId).concat(newSteps);
+
+  return newSteps;
+}

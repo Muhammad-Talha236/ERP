@@ -110,3 +110,83 @@ export async function assignBundleEmployee(bundleId, { employeeId, employeeName 
 
   return bundles.find((b) => b.id === bundleId);
 }
+
+/**
+ * Simulates POST /api/v1/orders/{orderId}/bundles/split
+ *
+ * Splits an order's total quantity into multiple bundles of a given
+ * size. If the total doesn't divide evenly, the LAST bundle absorbs
+ * the remainder (e.g. 1000 units / 300 per bundle = 3 full bundles
+ * of 300 + 1 final bundle of 100), so nothing is lost.
+ *
+ * Every new bundle starts unassigned, at stage order 1 (Material
+ * Allocation is assumed as the pipeline's first stage name — the
+ * actual name is passed in since it depends on the order's own steps).
+ *
+ * @param {string} orderId
+ * @param {number} totalQuantity
+ * @param {number} quantityPerBundle
+ * @param {string} firstStageName
+ * @returns {Promise<ProductionBundle[]>} the newly created bundles
+ */
+export async function splitOrderIntoBundles(orderId, totalQuantity, quantityPerBundle, firstStageName) {
+  await wait(DELAY_MS);
+
+  const fullBundleCount = Math.floor(totalQuantity / quantityPerBundle);
+  const remainder = totalQuantity % quantityPerBundle;
+
+  const newBundles = [];
+
+  for (let i = 0; i < fullBundleCount; i++) {
+    newBundles.push({
+      id: `bun-${Date.now()}-${i}`,
+      orderId,
+      bundleNumber: `B-${orderId.slice(-4)}-${i + 1}`,
+      quantity: quantityPerBundle,
+      currentStageOrder: 1,
+      currentStageName: firstStageName,
+      assignedEmployeeId: null,
+      assignedEmployeeName: null,
+      status: 'Not Started',
+    });
+  }
+
+  if (remainder > 0) {
+    newBundles.push({
+      id: `bun-${Date.now()}-rem`,
+      orderId,
+      bundleNumber: `B-${orderId.slice(-4)}-${fullBundleCount + 1}`,
+      quantity: remainder,
+      currentStageOrder: 1,
+      currentStageName: firstStageName,
+      assignedEmployeeId: null,
+      assignedEmployeeName: null,
+      status: 'Not Started',
+    });
+  }
+
+  bundles = [...bundles, ...newBundles];
+  return newBundles;
+}
+
+/**
+ * Simulates PUT /api/v1/bundles/{bundleId} — edits an existing
+ * bundle's quantity.
+ * @param {string} bundleId
+ * @param {{ quantity: number }} updates
+ */
+export async function updateBundle(bundleId, updates) {
+  await wait(300);
+  bundles = bundles.map((b) => (b.id === bundleId ? { ...b, ...updates } : b));
+  return bundles.find((b) => b.id === bundleId);
+}
+
+/**
+ * Simulates DELETE /api/v1/bundles/{bundleId}
+ * @param {string} bundleId
+ */
+export async function deleteBundle(bundleId) {
+  await wait(300);
+  bundles = bundles.filter((b) => b.id !== bundleId);
+  return { id: bundleId };
+}
