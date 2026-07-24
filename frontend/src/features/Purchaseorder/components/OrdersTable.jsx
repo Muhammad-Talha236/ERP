@@ -1,27 +1,14 @@
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
-import { Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ShoppingCart } from 'lucide-react';
 import { getProductionOrderStatusVariant, getPriorityVariant } from '../utils/productionOrderStatusVariant';
 
-const COLUMNS = ['PO #', 'CUSTOMER', 'PRODUCT', 'QTY', 'PRIORITY', 'STATUS', 'DUE', ''];
+const COLUMNS = ['PO #', 'CUSTOMER', 'PRODUCT', 'QTY', 'PRIORITY', 'STATUS', 'DUE'];
 
-/**
- * OrdersTable — simple list view of all production orders.
- * The Kanban board (separate page now) is the visual/status view;
- * this table is the data-dense list view, matching how Purchase
- * Orders and Employees already work.
- *
- * @param {Object} props
- * @param {ProductionOrder[]} props.orders
- * @param {boolean} props.isLoading
- * @param {(order: ProductionOrder) => void} props.onViewClick
- */
-export function OrdersTable({ orders, isLoading, onViewClick }) {
+export function OrdersTable({ orders, isLoading }) {
   if (isLoading) return <LoadingSkeleton rows={5} />;
 
   if (!orders || orders.length === 0) {
@@ -56,11 +43,6 @@ export function OrdersTable({ orders, isLoading, onViewClick }) {
               <td className="py-4"><Badge variant={getPriorityVariant(order.priority)}>{order.priority}</Badge></td>
               <td className="py-4"><Badge variant={getProductionOrderStatusVariant(order.status)}>{order.status}</Badge></td>
               <td className="py-4 text-sm text-text-secondary">{format(new Date(order.deliveryDate), 'MMM d')}</td>
-              <td className="py-4 text-right">
-                <Button variant="outline" size="sm" onClick={() => onViewClick(order)}>
-                  <Eye size={14} /> View
-                </Button>
-              </td>
             </tr>
           ))}
         </tbody>
@@ -72,5 +54,4 @@ export function OrdersTable({ orders, isLoading, onViewClick }) {
 OrdersTable.propTypes = {
   orders: PropTypes.array,
   isLoading: PropTypes.bool,
-  onViewClick: PropTypes.func,
 };

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductionStatsCards } from './components/ProductionStatsCards';
 import { OrdersTable } from './components/OrdersTable';
@@ -8,14 +7,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { useProductionOrders } from './hooks/useProductionOrders';
 
-/**
- * PurchasePage — "Orders" screen: create and list customer
- * purchase orders. "View" now navigates straight to the Workflow
- * page (no separate overview modal) since that's where all the
- * useful order detail actually lives.
- */
 export function PurchasePage() {
-  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { data: orders, isLoading, isError, refetch } = useProductionOrders();
 
@@ -35,11 +27,7 @@ export function PurchasePage() {
           <Button onClick={() => setIsFormOpen(true)}>+ New Order</Button>
         </div>
 
-        <OrdersTable
-          orders={orders}
-          isLoading={isLoading}
-          onViewClick={() => navigate({ to: '/workflow' })}
-        />
+        <OrdersTable orders={orders} isLoading={isLoading} />
       </div>
 
       <NewOrderFormModal open={isFormOpen} onOpenChange={setIsFormOpen} />

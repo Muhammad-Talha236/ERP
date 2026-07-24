@@ -2,25 +2,18 @@ import PropTypes from 'prop-types';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/Badge';
-import { getPriorityVariant } from '../../Purchaseorder/utils/productionOrderStatusVariant';
+import { getPriorityVariant } from '@/features/Purchaseorder/utils/productionOrderStatusVariant';
 
 /**
- * ProductionOrderCard — a single order card inside a Kanban column.
- * Click-only now (no drag) — see ProductionKanbanBoard for why.
- *
- * @param {Object} props
- * @param {ProductionOrder} props.order
- * @param {number} props.totalStages
- * @param {() => void} props.onClick
+ * ProductionOrderCard — status-only display card. No click
+ * navigation — clicking used to jump to the Workflow page, which
+ * was confusing, so this is now purely informational.
  */
-export function ProductionOrderCard({ order, totalStages, onClick }) {
+export function ProductionOrderCard({ order, totalStages }) {
   const progressPercent = Math.round((order.currentStageOrder / totalStages) * 100);
 
   return (
-    <div
-      onClick={onClick}
-      className="rounded-card border border-border bg-background p-4 cursor-pointer hover:border-primary/40 transition-colors"
-    >
+    <div className="rounded-card border border-border bg-background p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold text-text-secondary">{order.poNumber}</span>
         <Badge variant={getPriorityVariant(order.priority)}>{order.priority}</Badge>
@@ -47,5 +40,4 @@ export function ProductionOrderCard({ order, totalStages, onClick }) {
 ProductionOrderCard.propTypes = {
   order: PropTypes.object.isRequired,
   totalStages: PropTypes.number.isRequired,
-  onClick: PropTypes.func,
 };

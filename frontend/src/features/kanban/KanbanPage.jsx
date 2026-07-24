@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProductionKanbanBoard } from './components/ProductionKanbanBoard';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -6,7 +5,6 @@ import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { useProductionOrders } from '@/features/Purchaseorder/hooks/useProductionOrders';
 
 export function KanbanPage() {
-  const navigate = useNavigate();
   const { data: orders, isLoading, isError, refetch } = useProductionOrders();
 
   if (isError) {
@@ -19,14 +17,7 @@ export function KanbanPage() {
 
   return (
     <AppLayout title="Kanban" subtitle="Live view of order status across stages">
-      {isLoading ? (
-        <LoadingSkeleton rows={4} />
-      ) : (
-        <ProductionKanbanBoard
-          orders={orders ?? []}
-          onCardClick={() => navigate({ to: '/workflow' })}
-        />
-      )}
+      {isLoading ? <LoadingSkeleton rows={4} /> : <ProductionKanbanBoard orders={orders ?? []} />}
     </AppLayout>
   );
 }

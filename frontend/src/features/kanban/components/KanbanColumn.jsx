@@ -9,18 +9,7 @@ const STATUS_DOT_COLOR = {
   Completed: 'bg-success',
 };
 
-/**
- * KanbanColumn — one status column. Purely a display grouping now —
- * no drop target, since orders move between columns only through
- * actual workflow progress, not manual dragging.
- *
- * @param {Object} props
- * @param {string} props.status
- * @param {ProductionOrder[]} props.orders
- * @param {number} props.totalStages
- * @param {(order: ProductionOrder) => void} props.onCardClick
- */
-export function KanbanColumn({ status, orders, totalStages, onCardClick }) {
+export function KanbanColumn({ status, orders, totalStages }) {
   return (
     <div className="flex-1 min-w-[280px] rounded-card border border-border bg-background/50 p-4">
       <div className="flex items-center gap-2 mb-4">
@@ -31,12 +20,7 @@ export function KanbanColumn({ status, orders, totalStages, onCardClick }) {
 
       <div className="space-y-3">
         {orders.map((order) => (
-          <ProductionOrderCard
-            key={order.id}
-            order={order}
-            totalStages={totalStages}
-            onClick={() => onCardClick(order)}
-          />
+          <ProductionOrderCard key={order.id} order={order} totalStages={totalStages} />
         ))}
       </div>
     </div>
@@ -47,5 +31,4 @@ KanbanColumn.propTypes = {
   status: PropTypes.string.isRequired,
   orders: PropTypes.array.isRequired,
   totalStages: PropTypes.number.isRequired,
-  onCardClick: PropTypes.func,
 };
