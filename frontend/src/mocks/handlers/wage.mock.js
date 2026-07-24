@@ -124,3 +124,26 @@ export async function updatePaymentTransaction(transactionId, updates) {
     transaction: paymentHistory.find((p) => p.id === transactionId),
   };
 }
+
+/**
+ * creditProductionWage — increases an employee's current wage
+ * record when they complete a production stage assignment. This is
+ * what makes "wage per person" real: finishing work adds actual
+ * money to the employee's payable wage.
+ *
+ * @param {string} employeeId
+ * @param {number} amount
+ * @returns {WageRecord|null}
+ */
+export function creditProductionWage(employeeId, amount) {
+  const record = wages.find((w) => w.employeeId === employeeId);
+  if (!record) return null;
+
+  wages = wages.map((w) =>
+    w.employeeId === employeeId
+      ? { ...w, grossAmount: w.grossAmount + amount, netAmount: w.netAmount + amount }
+      : w
+  );
+
+  return wages.find((w) => w.employeeId === employeeId);
+}

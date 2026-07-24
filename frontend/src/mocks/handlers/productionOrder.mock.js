@@ -1,7 +1,7 @@
 import { productionOrdersMockData } from '@/mocks/data/productionOrders.mock';
 import { orderWorkflowStepsMockData } from '@/mocks/data/orderWorkflowSteps.mock';
 import { workflowTemplatesMockData } from '@/mocks/data/workflowTemplates.mock';
-
+import { creditProductionWage } from './wage.mock';
 const DELAY_MS = 350;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,27 +43,35 @@ export async function fetchProductionOrderById(id) {
   if (!order) throw new Error('Production order not found.');
   return order;
 }
-
 /**
  * Simulates POST /api/v1/purchase-orders
  *
- * THIS IS PO FLOW STEP 2 + 3 IN ONE OPERATION:
- *  - Step 2: generates a unique, sequential PO number.
- *  - Step 3: "Production workflow steps are attached to the PO" —
- *    we look up the chosen WorkflowTemplate and COPY each of its
- *    stages into brand-new orderWorkflowSteps rows scoped to this
- *    order's id. From this point on, editing these copied rows
- *    (via updateOrderWorkflowStep) never touches the original
- *    template — exactly the independence PO Flow Step 4 requires.
+ * Now supports TWO ways to attach a workflow to a new order:
+ *  1. workflowTemplateId provided -> stages are copied from that
+ *     existing template (previous behavior).
+ *  2. customStages provided instead -> those stages are used
+ *     directly, exactly as the user built them for this one order.
+ *     No template is created/referenced — this is a one-off
+ *     workflow that belongs ONLY to this order.
  *
- * @param {{ customerId, customerName, productName, quantity, unitPrice, workflowTemplateId, priority, deliveryDate }} newOrder
+ * @param {{ customerId, customerName, productName, quantity, unitPrice, priority, deliveryDate, workflowTemplateId?: string, customStages?: Array }} newOrder
  * @returns {Promise<ProductionOrder>}
  */
 export async function createProductionOrder(newOrder) {
   await wait(DELAY_MS);
 
-  const template = workflowTemplatesMockData.find((t) => t.id === newOrder.workflowTemplateId);
-  if (!template) throw new Error('Workflow template not found.');
+  const { workflowTemplateId, customStages, ...orderFields } = newOrder;
+
+  let stageSource;
+
+  if (customStages && customStages.length > 0) {
+    // Custom, one-off workflow built by the user for this order only.
+    stageSource = [...customStages].sort((a, b) => a.position - b.position);
+  } else {
+    const template = workflowTemplatesMockData.find((t) => t.id === workflowTemplateId);
+    if (!template) throw new Error('Workflow template not found.');
+    stageSource = template.stages;
+  }
 
   const nextNumber = 2400 + productionOrders.length + 1;
 
@@ -73,19 +81,19 @@ export async function createProductionOrder(newOrder) {
     currentStageOrder: 1,
     status: 'Pending',
     orderDate: new Date().toISOString().slice(0, 10),
-    ...newOrder,
+    workflowTemplateId: workflowTemplateId ?? null,
+    ...orderFields,
   };
 
   productionOrders = [order, ...productionOrders];
 
-  // Copy the template's stages into this order's OWN editable steps.
-  const newSteps = template.stages.map((stage) => ({
-    id: `ows-${Date.now()}-${stage.stageOrder}`,
+  const newSteps = stageSource.map((stage, index) => ({
+    id: `ows-${Date.now()}-${index}`,
     orderId: order.id,
     stageName: stage.stageName,
-    stageOrder: stage.stageOrder,
+    stageOrder: index + 1,
     expense: stage.stageExpense,
-    wagePerUnit: stage.wagePerUnit,
+    wagePerPerson: stage.wagePerPerson,
     headcount: stage.headcount,
     assignedEmployeeId: null,
     assignedEmployeeName: null,
@@ -194,12 +202,28 @@ export async function addStageAssignment(stepId, { employeeId, employeeName }) {
  * itself. This keeps the "many employees, one step" rule enforced
  * consistently regardless of which employee finishes last.
  */
+/**
+ * Simulates PATCH /api/v1/stage-assignments/{id}/complete
+ *
+ * Also credits the employee's wage record with that stage's
+ * wagePerPerson amount — completing work directly increases how
+ * much they're owed.
+ */
 export async function completeStageAssignment(assignmentId) {
   await wait(250);
 
+  const assignment = stageAssignments.find((a) => a.id === assignmentId);
+  if (!assignment) throw new Error('Assignment not found.');
+
+  const step = orderWorkflowSteps.find((s) => s.id === assignment.stepId);
+
   stageAssignments = stageAssignments.map((a) =>
     a.id === assignmentId ? { ...a, isDone: true, completedAt: new Date().toISOString().slice(0, 10) } : a
-  );
+  );  
+
+  if (step) {
+    creditProductionWage(assignment.employeeId, step.wagePerPerson);
+  }
 
   return stageAssignments.find((a) => a.id === assignmentId);
 }

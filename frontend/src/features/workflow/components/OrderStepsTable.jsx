@@ -4,23 +4,15 @@ import PropTypes from 'prop-types';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useUpdateOrderWorkflowStep } from '../hooks/useUpdateOrderWorkflowStep';
-import { useUpdateProductionOrderStage } from '../../Purchaseorder/hooks/useUpdateProductionOrderStage';
-import { deriveOrderProgress } from '../../Purchaseorder/utils/deriveOrderProgress';
+import { useUpdateProductionOrderStage } from '@/features/Purchaseorder/hooks/useUpdateProductionOrderStage';
+import { deriveOrderProgress } from '@/features/Purchaseorder/utils/deriveOrderProgress';
 import { StageAssignmentPanel } from './StageAssignmentPanel';
 import { QualityCheckPanel } from './QualityCheckPanel';
 
-/** 
+/**
  * OrderStepsTable — this order's own editable workflow steps.
- *
- * Only the CURRENTLY ACTIVE stage (first not-Completed, in order)
- * can expand. What it expands INTO depends on the stage:
- *  - "Quality Check" -> QualityCheckPanel (admin Approve/Reject)
- *  - anything else -> StageAssignmentPanel (each assigned employee
- *    marks their own portion done; stage auto-completes once all are done)
- *
- * @param {Object} props
- * @param {OrderWorkflowStep[]} props.steps
- * @param {ProductionOrder} props.order
+ * Column renamed from "WAGE/UNIT" to "WAGE/PERSON" to match the
+ * per-person wage model.
  */
 export function OrderStepsTable({ steps, order }) {
   const [expandedStepId, setExpandedStepId] = useState(null);
@@ -42,9 +34,6 @@ export function OrderStepsTable({ steps, order }) {
     recomputeOrderProgress(sortedSteps.map((s) => (s.id === stepId ? { ...s, status: 'Completed' } : s)));
   };
 
-  // Rejection: the QC step goes back to 'In Progress' — order progress
-  // is recomputed the same way, which will correctly show 'In Progress'
-  // again since the QC step is no longer 'Completed'.
   const handleQCRejected = (stepId) => {
     recomputeOrderProgress(sortedSteps.map((s) => (s.id === stepId ? { ...s, status: 'In Progress' } : s)));
   };
@@ -54,7 +43,7 @@ export function OrderStepsTable({ steps, order }) {
       <table className="w-full min-w-[720px]">
         <thead>
           <tr className="border-b border-border bg-surface/50">
-            {['STAGE', 'EXPENSE', 'WAGE/UNIT', 'HEADCOUNT', 'STATUS', ''].map((col) => (
+            {['STAGE', 'EXPENSE', 'WAGE/PERSON', 'HEADCOUNT', 'STATUS', ''].map((col) => (
               <th key={col} className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wide py-2 px-3">
                 {col}
               </th>
@@ -92,7 +81,7 @@ export function OrderStepsTable({ steps, order }) {
 function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, onStepCompleted, onQCRejected, updateStep }) {
   const [isEditing, setIsEditing] = useState(false);
   const [expense, setExpense] = useState(step.expense);
-  const [wagePerUnit, setWagePerUnit] = useState(step.wagePerUnit);
+  const [wagePerPerson, setWagePerPerson] = useState(step.wagePerPerson);
   const [headcount, setHeadcount] = useState(step.headcount);
 
   const isCompleted = step.status === 'Completed';
@@ -100,13 +89,13 @@ function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, o
   const handleSave = () => {
     updateStep({
       stepId: step.id,
-      updates: { expense: Number(expense), wagePerUnit: Number(wagePerUnit), headcount: Number(headcount) },
+      updates: { expense: Number(expense), wagePerPerson: Number(wagePerPerson), headcount: Number(headcount) },
     }, { onSuccess: () => setIsEditing(false) });
   };
 
   const handleCancel = () => {
     setExpense(step.expense);
-    setWagePerUnit(step.wagePerUnit);
+    setWagePerPerson(step.wagePerPerson);
     setHeadcount(step.headcount);
     setIsEditing(false);
   };
@@ -116,7 +105,7 @@ function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, o
       <tr className="border-b border-border last:border-0 bg-primary/5">
         <td className="py-2 px-3 text-sm font-medium text-text-primary whitespace-nowrap">{step.stageName}</td>
         <td className="py-2 px-3"><Input type="number" value={expense} onChange={(e) => setExpense(e.target.value)} className="w-24 h-8" /></td>
-        <td className="py-2 px-3"><Input type="number" step="0.01" value={wagePerUnit} onChange={(e) => setWagePerUnit(e.target.value)} className="w-24 h-8" /></td>
+        <td className="py-2 px-3"><Input type="number" step="0.01" value={wagePerPerson} onChange={(e) => setWagePerPerson(e.target.value)} className="w-24 h-8" /></td>
         <td className="py-2 px-3"><Input type="number" value={headcount} onChange={(e) => setHeadcount(e.target.value)} className="w-20 h-8" /></td>
         <td className="py-2 px-3"><Badge variant="neutral">{step.status}</Badge></td>
         <td className="py-2 px-3 text-right whitespace-nowrap">
@@ -140,7 +129,7 @@ function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, o
           </div>
         </td>
         <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.expense.toLocaleString()}</td>
-        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.wagePerUnit}</td>
+        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.wagePerPerson}</td>
         <td className="py-2 px-3 text-sm text-text-secondary">{step.headcount}</td>
         <td className="py-2 px-3">
           <Badge variant={isCompleted ? 'success' : isActive ? (isQC ? 'warning' : 'info') : 'neutral'}>
@@ -158,7 +147,7 @@ function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, o
 
       {isActive && isExpanded && (
         <tr className="border-b border-border last:border-0 bg-surface/20">
-          <td colSpan={6} className="px-3 py-3">
+          <td colSpan={5} className="px-3 py-3">
             {isQC ? (
               <QualityCheckPanel step={step} onApproved={onStepCompleted} onRejected={onQCRejected} />
             ) : (
