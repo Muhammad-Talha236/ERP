@@ -26,6 +26,5 @@ export const NAV_ITEMS = [
   { label: 'Purchase Orders', path: '/Purchase', icon: ShoppingCart, module: 'production' },
   { label: 'Wages', path: '/wages', icon: Wallet, module: 'workforce' },
   { label: 'Accounts', path: '/accounts', icon: Landmark, module: 'finance' },
-  { label: 'Reports', path: '/reports', icon: BarChart3, module: 'shared' },
   { label: 'Settings', path: '/settings', icon: Settings, module: 'shared' },
 ];

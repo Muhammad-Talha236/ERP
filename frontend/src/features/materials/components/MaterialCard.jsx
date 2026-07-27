@@ -61,7 +61,7 @@ export function MaterialCard({ material, onClick }) {
           onClick={onClick}
           className="text-xs font-semibold text-primary hover:text-primary-hover transition-colors"
         >
-          History
+          Edit
         </button>
       </div>
     </div>

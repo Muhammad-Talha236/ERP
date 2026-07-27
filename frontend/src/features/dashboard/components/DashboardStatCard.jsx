@@ -22,7 +22,7 @@ export function DashboardStatCard({ label, value, icon: Icon, trendData, changeP
   const chartData = trendData.map((v, i) => ({ index: i, value: v }));
 
   return (
-    <div className="rounded-card border border-border bg-background p-6">
+    <div className="rounded-card border border-border bg-background p-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{label}</p>
         <div className={cn('w-9 h-9 rounded-input flex items-center justify-center shrink-0', iconAccent)}>
@@ -30,14 +30,14 @@ export function DashboardStatCard({ label, value, icon: Icon, trendData, changeP
         </div>
       </div>
 
-      <p className="text-3xl font-bold text-text-primary mt-3">{value}</p>
+      <p className="text-3xl font-bold text-text-primary mt-1">{value}</p>
 
-      <div className={cn('flex items-center gap-1 text-sm mt-1', isPositive ? 'text-success' : 'text-danger')}>
+      <div className={cn('flex items-center gap-1 text-sm mt-0', isPositive ? 'text-success' : 'text-danger')}>
         {isPositive ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
         {Math.abs(changePercent)}% <span className="text-text-secondary">vs last week</span>
       </div>
 
-      <div className="h-12 mt-3 -mx-1">
+      <div className="h-12 mt-1 -mx-1">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <Line type="monotone" dataKey="value" stroke={lineColor} strokeWidth={2} dot={false} />
