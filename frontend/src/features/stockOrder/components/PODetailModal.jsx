@@ -26,14 +26,14 @@ const editSchema = z.object({
   supplierName: z.string().min(1, 'Supplier is required'),
   expectedDeliveryDate: z.string().min(1, 'Delivery date is required'),
   items: z
-    .array(
-      z.object({
-        materialName: z.string().min(1, 'Material name is required'),
-        quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-        unitPrice: z.coerce.number().min(0, 'Unit price must be 0 or greater'),
-      })
-    )
-    .min(1, 'At least one item is required'),
+  .array(
+    z.object({
+      materialName: z.string().min(1, 'Material name is required'),
+      quantity: z.coerce.number().positive('Quantity must be greater than 0'),
+      unitPrice: z.coerce.number().min(0, 'Unit price must be 0 or greater'),
+    })
+  )
+  .min(1, 'At least one item is required'),
 });
 
 /**
