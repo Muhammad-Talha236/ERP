@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowLeft, ChevronDown, ChevronRight, CheckCircle2, Lock } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Badge } from '@/components/ui/Badge';
 import { useBundleStageAssignments } from '../hooks/useBundleStageAssignments';
@@ -7,22 +7,20 @@ import { useAdvanceBundleStage } from '../hooks/useAdvanceBundleStage';
 import { StageAssignmentPanel } from './StageAssignmentPanel';
 
 /**
- * BundleWorkflowModal — despite the name (kept so other files don't
- * need import changes), this renders the SAME table layout as
+ * BundleWorkflowModal — renders the SAME table layout as
  * OrderStepsTable (Stage / Expense / Wage-Person / Headcount /
  * Status), but tracks progress for ONE SPECIFIC BUNDLE — completely
- * separate from the order's shared step status and from every other
- * bundle in the same order.
+ * independent from the order's shared step status and from every
+ * other bundle in the same order.
  *
- * Numbers (expense/wage/headcount) are inherited read-only from the
- * order's step definition — only assignment/completion is per-bundle.
+ * The "Back to bundles" navigation now lives in the parent
+ * (OrderWorkflowCard), so this component is purely the table itself.
  *
  * @param {Object} props
  * @param {ProductionBundle} props.bundle
  * @param {OrderWorkflowStep[]} props.steps
- * @param {() => void} props.onBack
  */
-export function BundleWorkflowModal({ bundle, steps, onBack }) {
+export function BundleWorkflowModal({ bundle, steps }) {
   const { data: assignments } = useBundleStageAssignments(bundle?.id);
   const { mutate: advanceStage } = useAdvanceBundleStage();
 
@@ -55,54 +53,36 @@ export function BundleWorkflowModal({ bundle, steps, onBack }) {
   };
 
   return (
-    <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors mb-4"
-      >
-        <ArrowLeft size={14} /> Back to bundles
-      </button>
-
-      <div className="mb-4">
-        <p className="text-sm font-bold text-text-primary">{bundle.bundleNumber}</p>
-        <p className="text-xs text-text-secondary">Quantity: {bundle.quantity} · Status: {bundle.status}</p>
-      </div>
-
-      <div className="overflow-x-auto rounded-input border border-border">
-        <table className="w-full min-w-[640px]">
-          <thead>
-            <tr className="border-b border-border bg-surface/50">
-              {['STAGE', 'EXPENSE', 'WAGE/PERSON', 'HEADCOUNT', 'STATUS'].map((col) => (
-                <th key={col} className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wide py-2 px-3">
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {stageStatuses.map(({ step, isComplete, isLocked }, index) => {
-              const isActive = index === activeIndex;
-
-              return (
-                <FragmentRow
-                  key={step.id}
-                  step={step}
-                  isActive={isActive}
-                  isLocked={isLocked}
-                  isComplete={isComplete}
-                  bundleId={bundle.id}
-                  onStepCompleted={() => handleStepCompleted(index)}
-                />
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <div className="overflow-x-auto rounded-input border border-border">
+      <table className="w-full min-w-[640px]">
+        <thead>
+          <tr className="border-b border-border bg-surface/50">
+            {['STAGE', 'EXPENSE', 'WAGE/PERSON', 'HEADCOUNT', 'STATUS'].map((col) => (
+              <th key={col} className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wide py-2 px-3">
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {stageStatuses.map(({ step, isComplete, isLocked }, index) => (
+            <BundleStepRow
+              key={step.id}
+              step={step}
+              isActive={index === activeIndex}
+              isLocked={isLocked}
+              isComplete={isComplete}
+              bundleId={bundle.id}
+              onStepCompleted={() => handleStepCompleted(index)}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function FragmentRow({ step, isActive, isLocked, isComplete, bundleId, onStepCompleted }) {
+function BundleStepRow({ step, isActive, isLocked, isComplete, bundleId, onStepCompleted }) {
   return (
     <>
       <tr className={`border-b border-border last:border-0 ${isLocked ? 'opacity-40' : ''}`}>
@@ -137,5 +117,4 @@ function FragmentRow({ step, isActive, isLocked, isComplete, bundleId, onStepCom
 BundleWorkflowModal.propTypes = {
   bundle: PropTypes.object,
   steps: PropTypes.array.isRequired,
-  onBack: PropTypes.func.isRequired,
-};  
+};
