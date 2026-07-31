@@ -2,65 +2,67 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import PropTypes from 'prop-types';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
-import { splitIntoBundlesSchema } from '../schemas/bundle.schema';
+import { createBundleSchema } from '../schemas/bundle.schema';
 import { useSplitIntoBundles } from '../hooks/useSplitIntoBundles';
 
 /**
- * SplitIntoBundlesForm — shown when an order has no bundles yet.
- * Admin enters how many units per bundle; shows a live preview of
- * how many bundles that creates (including a smaller final "leftover"
- * bundle if the total doesn't divide evenly).
- *
- * @param {Object} props
- * @param {string} props.orderId
- * @param {number} props.totalQuantity
- * @param {string} props.firstStageName
+ * SplitIntoBundlesForm — name kept for continuity; behavior changed:
+ * every order already has a default Bundle 1 (full quantity), so
+ * this form CARVES a new bundle's quantity out of an EXISTING bundle
+ * the user picks, shrinking that source bundle by the same amount.
+ * Total quantity across all bundles never changes.
  */
-export function SplitIntoBundlesForm({ orderId, totalQuantity, firstStageName }) {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: zodResolver(splitIntoBundlesSchema),
-    defaultValues: { quantityPerBundle: '' },
+export function SplitIntoBundlesForm({ orderId, bundles, firstStageName, onDone }) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setError,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(createBundleSchema),
+    defaultValues: { sourceBundleId: bundles[0]?.id ?? '', quantity: '' },
   });
 
-  const { mutate: splitBundles, isPending } = useSplitIntoBundles();
+  const { mutate: createBundle, isPending } = useSplitIntoBundles();
 
-  const quantityPerBundle = Number(watch('quantityPerBundle')) || 0;
-  const fullBundles = quantityPerBundle > 0 ? Math.floor(totalQuantity / quantityPerBundle) : 0;
-  const remainder = quantityPerBundle > 0 ? totalQuantity % quantityPerBundle : 0;
+  const sourceBundleId = watch('sourceBundleId');
+  const sourceBundle = bundles.find((b) => b.id === sourceBundleId);
+  const quantity = Number(watch('quantity')) || 0;
 
   const onSubmit = (formData) => {
-    splitBundles({
-      orderId,
-      totalQuantity,
-      quantityPerBundle: formData.quantityPerBundle,
-      firstStageName,
-    });
+    createBundle(
+      { orderId, sourceBundleId: formData.sourceBundleId, quantity: formData.quantity, firstStageName },
+      {
+        onSuccess: () => onDone(),
+        onError: (err) => setError('quantity', { message: err.message }),
+      }
+    );
   };
 
   return (
-    <div className="rounded-input border border-border p-5 text-center">
-      <p className="text-sm font-semibold text-text-primary mb-1">No bundles yet</p>
-      <p className="text-xs text-text-secondary mb-4">
-        Split this order's {totalQuantity.toLocaleString()} units into bundles to track them individually.
-      </p>
+    <div className="rounded-input border border-border p-4">
+      <p className="text-sm font-semibold text-text-primary mb-1">Create New Bundle</p>
+      <p className="text-xs text-text-secondary mb-3">Move some quantity out of an existing bundle to form a new one.</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex items-end justify-center gap-3 max-w-xs mx-auto">
-        <Input
-          label="Units per bundle"
-          type="number"
-          error={errors.quantityPerBundle?.message}
-          {...register('quantityPerBundle')}
+      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-[1fr_140px_auto] gap-3 items-end">
+        <Select
+          label="From bundle"
+          error={errors.sourceBundleId?.message}
+          {...register('sourceBundleId')}
+          options={bundles.map((b) => ({ label: `${b.bundleNumber} (qty ${b.quantity})`, value: b.id }))}
         />
-        <Button type="submit" disabled={isPending || quantityPerBundle <= 0}>
-          {isPending ? 'Splitting...' : 'Split'}
+        <Input label="New bundle qty" type="number" error={errors.quantity?.message} {...register('quantity')} />
+        <Button type="submit" disabled={isPending || quantity <= 0}>
+          {isPending ? 'Creating...' : 'Create'}
         </Button>
       </form>
 
-      {quantityPerBundle > 0 && (
-        <p className="text-xs text-text-secondary mt-3">
-          This will create {fullBundles} bundle{fullBundles !== 1 ? 's' : ''} of {quantityPerBundle.toLocaleString()}
-          {remainder > 0 && <> + 1 final bundle of {remainder.toLocaleString()}</>}.
+      {sourceBundle && quantity > 0 && (
+        <p className="text-xs text-text-secondary mt-2">
+          {sourceBundle.bundleNumber} will become {Math.max(sourceBundle.quantity - quantity, 0)}, new bundle will be {quantity}.
         </p>
       )}
     </div>
@@ -69,6 +71,7 @@ export function SplitIntoBundlesForm({ orderId, totalQuantity, firstStageName })
 
 SplitIntoBundlesForm.propTypes = {
   orderId: PropTypes.string.isRequired,
-  totalQuantity: PropTypes.number.isRequired,
+  bundles: PropTypes.array.isRequired,
   firstStageName: PropTypes.string.isRequired,
+  onDone: PropTypes.func.isRequired,
 };

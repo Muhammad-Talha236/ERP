@@ -1,4 +1,3 @@
-// src/features/workflow/hooks/useAdvanceBundleStage.js
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { advanceBundleStage } from '@/mocks/handlers/productionBundle.mock';
 
@@ -9,6 +8,8 @@ export function useAdvanceBundleStage() {
       advanceBundleStage(bundleId, nextStageOrder, nextStageName, isLastStage),
     onSuccess: (updatedBundle) => {
       queryClient.invalidateQueries({ queryKey: ['productionOrders', updatedBundle.orderId, 'bundles'] });
+      queryClient.invalidateQueries({ queryKey: ['productionOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['allBundles'] });
     },
   });
-}
+} 

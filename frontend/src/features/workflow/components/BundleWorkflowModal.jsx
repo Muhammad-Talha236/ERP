@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, CheckCircle2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Badge } from '@/components/ui/Badge';
 import { useBundleStageAssignments } from '../hooks/useBundleStageAssignments';
@@ -7,20 +7,20 @@ import { useAdvanceBundleStage } from '../hooks/useAdvanceBundleStage';
 import { StageAssignmentPanel } from './StageAssignmentPanel';
 
 /**
- * BundleWorkflowModal — renders the SAME table layout as
- * OrderStepsTable (Stage / Expense / Wage-Person / Headcount /
- * Status), but tracks progress for ONE SPECIFIC BUNDLE — completely
- * independent from the order's shared step status and from every
- * other bundle in the same order.
+ * BundleWorkflowModal — the stage-by-stage table for ONE SPECIFIC
+ * BUNDLE.
  *
- * The "Back to bundles" navigation now lives in the parent
- * (OrderWorkflowCard), so this component is purely the table itself.
- *
- * @param {Object} props
- * @param {ProductionBundle} props.bundle
- * @param {OrderWorkflowStep[]} props.steps
+ * Every row can now be expanded (not just the current active one),
+ * so employees can be pre-assigned to ANY stage in advance — no
+ * separate "Bulk Assign" screen needed. Sequential rules are still
+ * enforced inside StageAssignmentPanel: "Mark my work done" only
+ * appears there for the bundle's actual current active stage;
+ * assignments made to a future stage just wait as a visible plan
+ * until their turn comes.
  */
 export function BundleWorkflowModal({ bundle, steps }) {
+  const [expandedStepId, setExpandedStepId] = useState(null);
+
   const { data: assignments } = useBundleStageAssignments(bundle?.id);
   const { mutate: advanceStage } = useAdvanceBundleStage();
 
@@ -65,31 +65,41 @@ export function BundleWorkflowModal({ bundle, steps }) {
           </tr>
         </thead>
         <tbody>
-          {stageStatuses.map(({ step, isComplete, isLocked }, index) => (
-            <BundleStepRow
-              key={step.id}
-              step={step}
-              isActive={index === activeIndex}
-              isLocked={isLocked}
-              isComplete={isComplete}
-              bundleId={bundle.id}
-              onStepCompleted={() => handleStepCompleted(index)}
-            />
-          ))}
+          {stageStatuses.map(({ step, isComplete, isLocked }, index) => {
+            const isActive = index === activeIndex;
+            const isExpanded = expandedStepId === step.id;
+
+            return (
+              <BundleStepRow
+                key={step.id}
+                step={step}
+                isActive={isActive}
+                isLocked={isLocked}
+                isComplete={isComplete}
+                isExpanded={isExpanded}
+                onToggleExpand={() => setExpandedStepId(isExpanded ? null : step.id)}
+                bundleId={bundle.id}
+                onStepCompleted={() => handleStepCompleted(index)}
+              />
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-function BundleStepRow({ step, isActive, isLocked, isComplete, bundleId, onStepCompleted }) {
+function BundleStepRow({ step, isActive, isLocked, isComplete, isExpanded, onToggleExpand, bundleId, onStepCompleted }) {
   return (
     <>
-      <tr className={`border-b border-border last:border-0 ${isLocked ? 'opacity-40' : ''}`}>
+      <tr
+        className={`border-b border-border last:border-0 cursor-pointer hover:bg-surface/30 ${isLocked ? 'opacity-70' : ''}`}
+        onClick={onToggleExpand}
+      >
         <td className="py-2 px-3 text-sm font-medium text-text-primary whitespace-nowrap">
           <div className="flex items-center gap-1">
-            {isActive && <ChevronDown size={14} />}
-            {!isActive && !isComplete && !isLocked && <ChevronRight size={14} />}
+            {isComplete && <CheckCircle2 size={14} className="text-success" />}
+            {!isComplete && (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} className="text-text-secondary" />)}
             {step.stageName}
           </div>
         </td>
@@ -103,10 +113,17 @@ function BundleStepRow({ step, isActive, isLocked, isComplete, bundleId, onStepC
         </td>
       </tr>
 
-      {isActive && (
-        <tr className="border-b border-border last:border-0 bg-surface/20">
+      {isExpanded && !isComplete && (
+        <tr className="border-b border-border last:border-0 bg-surface/20" onClick={(e) => e.stopPropagation()}>
           <td colSpan={5} className="px-3 py-3">
-            <StageAssignmentPanel step={step} onStepCompleted={onStepCompleted} scope="bundle" bundleId={bundleId} />
+            
+            <StageAssignmentPanel
+              step={step}
+              onStepCompleted={onStepCompleted}
+              scope="bundle"
+              bundleId={bundleId}
+              canMarkDone={isActive}
+            />
           </td>
         </tr>
       )}

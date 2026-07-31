@@ -6,45 +6,28 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SplitIntoBundlesForm } from './SplitIntoBundlesForm';
+import { AssignEmployeesModal } from './AssignEmployeesModal';
 import { useLogBundleMovement } from '../hooks/useLogBundleMovement';
 import { useUpdateBundle } from '../hooks/useUpdateBundle';
 import { useDeleteBundle } from '../hooks/useDeleteBundle';
 import { employeesMockData } from '@/mocks/data/employees.mock';
 
 /**
- * BundleList — shows every bundle for an order, or a "Split into
- * Bundles" form if none exist yet.
- *
- * Clicking a bundle's number no longer opens a popup — it calls
- * onSelectBundle; the PARENT (OrderWorkflowCard) swaps its own view
- * to that bundle's workflow, staying on the same Workflow page.
- *
- * @param {Object} props
- * @param {ProductionBundle[]} props.bundles
- * @param {OrderWorkflowStep[]} props.steps
- * @param {string} props.orderId
- * @param {number} props.totalQuantity
- * @param {(bundle: ProductionBundle) => void} props.onSelectBundle
+ * BundleList — "+ New Bundle" trigger now lives in OrderWorkflowCard's
+ * header (next to Edit Structure), so this component just reacts to
+ * `isCreatingBundle` passed down as a prop, rather than owning its
+ * own toggle button.
  */
-export function BundleList({ bundles, steps, orderId, totalQuantity, onSelectBundle }) {
+export function BundleList({ bundles, steps, orderId, isCreatingBundle, onCreateBundleDone }) {
   const [loggingBundleId, setLoggingBundleId] = useState(null);
   const [editingBundleId, setEditingBundleId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  const [assignBundle, setAssignBundle] = useState(null);
 
   const { mutate: deleteBundle, isPending: isDeleting } = useDeleteBundle();
 
   const firstStage = [...steps].sort((a, b) => a.stageOrder - b.stageOrder)[0];
-
-  if (!bundles || bundles.length === 0) {
-    return (
-      <SplitIntoBundlesForm
-        orderId={orderId}
-        totalQuantity={totalQuantity}
-        firstStageName={firstStage?.stageName ?? 'Stage 1'}
-      />
-    );
-  }
 
   const handleConfirmDelete = () => {
     setDeleteError(null);
@@ -56,6 +39,15 @@ export function BundleList({ bundles, steps, orderId, totalQuantity, onSelectBun
 
   return (
     <div className="space-y-3">
+      {isCreatingBundle && (
+        <SplitIntoBundlesForm
+          orderId={orderId}
+          bundles={bundles}
+          firstStageName={firstStage?.stageName ?? 'Stage 1'}
+          onDone={onCreateBundleDone}
+        />
+      )}
+
       {bundles.map((bundle) => (
         <BundleRow
           key={bundle.id}
@@ -68,7 +60,7 @@ export function BundleList({ bundles, steps, orderId, totalQuantity, onSelectBun
             setDeleteError(null);
             setDeleteTarget(bundle);
           }}
-          onNumberClick={() => onSelectBundle(bundle)}
+          onAssignClick={() => setAssignBundle(bundle)}
         />
       ))}
 
@@ -89,11 +81,18 @@ export function BundleList({ bundles, steps, orderId, totalQuantity, onSelectBun
         onConfirm={handleConfirmDelete}
         isConfirming={isDeleting}
       />
+
+      <AssignEmployeesModal
+        open={Boolean(assignBundle)}
+        onOpenChange={(open) => !open && setAssignBundle(null)}
+        bundle={assignBundle}
+        steps={steps}
+      />
     </div>
   );
 }
 
-function BundleRow({ bundle, isLogging, onToggleLog, isEditing, onToggleEdit, onDeleteClick, onNumberClick }) {
+function BundleRow({ bundle, isLogging, onToggleLog, isEditing, onToggleEdit, onDeleteClick, onAssignClick }) {
   const [employeeId, setEmployeeId] = useState(bundle.assignedEmployeeId ?? '');
   const [quantityReceived, setQuantityReceived] = useState(bundle.quantity);
   const [quantityOutput, setQuantityOutput] = useState(0);
@@ -126,10 +125,7 @@ function BundleRow({ bundle, isLogging, onToggleLog, isEditing, onToggleEdit, on
     setEditError(null);
     updateBundle(
       { bundleId: bundle.id, updates: { quantity: Number(editQuantity) } },
-      {
-        onSuccess: () => onToggleEdit(),
-        onError: (err) => setEditError(err.message || 'Failed to update quantity.'),
-      }
+      { onSuccess: () => onToggleEdit(), onError: (err) => setEditError(err.message || 'Failed to update quantity.') }
     );
   };
 
@@ -141,30 +137,29 @@ function BundleRow({ bundle, isLogging, onToggleLog, isEditing, onToggleEdit, on
 
   return (
     <div className="rounded-input border border-border p-4">
-
-<div className="flex items-center justify-between">
-  <div>
-    <p className="text-sm font-semibold text-text-primary">{bundle.bundleNumber}</p>
-    <p className="text-xs text-text-secondary">
-      Qty: {bundle.quantity} · {bundle.currentStageName} · {bundle.assignedEmployeeName || 'Unassigned'}
-    </p>
-  </div>
-  <div className="flex items-center gap-2">
-    <Badge variant={statusVariant}>{bundle.status}</Badge>
-    <Button variant="outline" size="sm" onClick={onNumberClick}>
-      Assign Employees
-    </Button>
-    <button onClick={onToggleEdit} className="text-text-secondary hover:text-primary transition-colors" aria-label="Edit bundle">
-      <Pencil size={14} />
-    </button>
-    <button onClick={onDeleteClick} className="text-text-secondary hover:text-danger transition-colors" aria-label="Delete bundle">
-      <Trash2 size={14} />
-    </button>
-    <Button variant="outline" size="sm" onClick={onToggleLog}>
-      {isLogging ? 'Cancel' : 'Log Movement'}
-    </Button>
-  </div>
-</div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-text-primary">{bundle.bundleNumber}</p>
+          <p className="text-xs text-text-secondary">
+            Qty: {bundle.quantity} · {bundle.currentStageName} · {bundle.assignedEmployeeName || 'Unassigned'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusVariant}>{bundle.status}</Badge>
+          <Button variant="outline" size="sm" onClick={onAssignClick}>
+            Assign Employees
+          </Button>
+          <button onClick={onToggleEdit} className="text-text-secondary hover:text-primary transition-colors" aria-label="Edit bundle">
+            <Pencil size={14} />
+          </button> 
+          <button onClick={onDeleteClick} className="text-text-secondary hover:text-danger transition-colors" aria-label="Delete bundle">
+            <Trash2 size={14} />
+          </button>
+          <Button variant="outline" size="sm" onClick={onToggleLog}>
+            {isLogging ? 'Cancel' : 'Log'}
+          </Button>
+        </div>
+      </div>
 
       {isEditing && (
         <div className="mt-4 pt-4 border-t border-border">
@@ -205,6 +200,6 @@ BundleList.propTypes = {
   bundles: PropTypes.array.isRequired,
   steps: PropTypes.array,
   orderId: PropTypes.string.isRequired,
-  totalQuantity: PropTypes.number.isRequired,
-  onSelectBundle: PropTypes.func.isRequired,
+  isCreatingBundle: PropTypes.bool,
+  onCreateBundleDone: PropTypes.func.isRequired,
 };

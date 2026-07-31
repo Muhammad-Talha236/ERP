@@ -10,8 +10,6 @@ export function getProductionOrderStatusVariant(status) {
       return 'success';
     case 'In Progress':
       return 'info';
-    case 'Quality Check':
-      return 'warning';
     case 'Cancelled':
       return 'danger';
     case 'Pending':

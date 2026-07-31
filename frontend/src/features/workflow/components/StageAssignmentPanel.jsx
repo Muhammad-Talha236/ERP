@@ -30,7 +30,7 @@ import { employeesMockData } from '@/mocks/data/employees.mock';
  * @param {'order'|'bundle'} [props.scope]
  * @param {string} [props.bundleId] - required when scope="bundle"
  */
-export function StageAssignmentPanel({ step, onStepCompleted, scope = 'order', bundleId = null }) {
+export function StageAssignmentPanel({ step, onStepCompleted, scope = 'order', bundleId = null,canMarkDone = true }) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
   // Both hook sets are always called (rules of hooks), but only the
@@ -111,17 +111,16 @@ export function StageAssignmentPanel({ step, onStepCompleted, scope = 'order', b
         <div key={assignment.id} className="flex items-center justify-between rounded-input border border-border px-3 py-2">
           <span className="text-sm text-text-primary">{assignment.employeeName}</span>
           {assignment.isDone ? (
-            <span className="flex items-center gap-1 text-xs text-success font-medium">
-              <CheckCircle2 size={14} /> Done
-            </span>
-          ) : (
-            <button
-              onClick={() => handleMarkDone(assignment.id)}
-              className="flex items-center gap-1 text-xs text-text-secondary hover:text-success transition-colors"
-            >
-              <Circle size={14} /> Mark my work done
-            </button>
-          )}
+  <span className="flex items-center gap-1 text-xs text-success font-medium">
+    <CheckCircle2 size={14} /> Done
+  </span>
+) : canMarkDone ? (
+  <button onClick={() => handleMarkDone(assignment.id)} >
+    <Circle size={14} /> Mark my work done
+  </button>
+) : (
+  <span className="text-xs text-text-secondary italic">Assigned — waiting</span>
+)}
         </div>
       ))}
 
@@ -148,4 +147,5 @@ StageAssignmentPanel.propTypes = {
   onStepCompleted: PropTypes.func.isRequired,
   scope: PropTypes.oneOf(['order', 'bundle']),
   bundleId: PropTypes.string,
+  canMarkDone: PropTypes.bool,
 };
