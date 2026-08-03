@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTenants } from '@/mocks/handlers/tenant.mock';
+import { api } from '@/services/api';
 
 /**
  * useTenants — fetches all factories registered on the platform.
@@ -7,6 +7,9 @@ import { fetchTenants } from '@/mocks/handlers/tenant.mock';
 export function useTenants() {
   return useQuery({
     queryKey: ['tenants'],
-    queryFn: fetchTenants,
+    queryFn: async () => {
+      const response = await api.get('/tenants');
+      return response.tenants; // Backend wraps tenants in { success: true, tenants: [...] }
+    },
   });
 }

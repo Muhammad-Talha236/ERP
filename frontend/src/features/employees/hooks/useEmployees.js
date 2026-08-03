@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchEmployees } from '@/mocks/handlers/employee.mock';
+import { api } from '@/services/api';
 
 /**
  * useEmployees — fetches the list of employees, optionally filtered
@@ -10,6 +10,9 @@ import { fetchEmployees } from '@/mocks/handlers/employee.mock';
 export function useEmployees(filters = {}) {
   return useQuery({
     queryKey: ['employees', filters],
-    queryFn: () => fetchEmployees(filters),
+    queryFn: async () => {
+      const response = await api.get('/employees', { params: filters });
+      return response.employees; // Backend returns { success: true, employees: [...] }
+    },
   });
 }

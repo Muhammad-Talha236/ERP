@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateTenantStatus } from '@/mocks/handlers/tenant.mock';
+import { api } from '@/services/api';
 
 /**
  * useUpdateTenantStatus — mutation hook for activating/suspending
@@ -9,7 +9,10 @@ export function useUpdateTenantStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }) => updateTenantStatus(id, status),
+    mutationFn: async ({ id, status }) => {
+      const response = await api.put(`/tenants/${id}`, { status });
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
     },

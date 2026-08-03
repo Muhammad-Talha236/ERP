@@ -27,7 +27,10 @@ export function Sidebar() {
     navigate({ to: '/login' });
   };
 
-  const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '?';
+  // ✅ FIX: Optional chaining (?) aur fallback '' add kiya hai taake undefined na aaye
+  const initials = user 
+    ? `${user?.firstName?.charAt(0) || ''}${user?.lastName?.charAt(0) || ''}`.toUpperCase() 
+    : '?';
 
   return (
     <aside
@@ -75,10 +78,10 @@ export function Sidebar() {
           <>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-text-primary truncate">
-                {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
+                {user ? `${user.name}` : 'Guest'}
               </p>
               <p className="text-xs text-text-secondary truncate">
-                {user?.role === 'SuperAdmin' ? 'Super Admin' : 'Plant Manager'}
+                {user?.role === 'Super_admin' ? 'Super Admin' : 'Plant Manager'}
               </p>
             </div>
             <button onClick={handleLogout} className="text-text-secondary hover:text-danger transition-colors shrink-0" aria-label="Logout">

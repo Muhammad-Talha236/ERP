@@ -54,10 +54,10 @@ export function SuperAdminPage() {
           <ThemeToggle />
           <div className="flex items-center gap-2 pl-3 border-l border-border">
             <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold">
-              {user ? `${user.firstName[0]}${user.lastName[0]}` : '?'}
+              {user?.name ? user.name.charAt(0).toUpperCase() : '?'}
             </div>
             <div className="text-sm">
-              <p className="font-semibold text-text-primary leading-tight">{user?.firstName} {user?.lastName}</p>
+              <p className="font-semibold text-text-primary leading-tight">{user?.name}</p>
               <p className="text-xs text-text-secondary leading-tight">Super Admin</p>
             </div>
             <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Logout">

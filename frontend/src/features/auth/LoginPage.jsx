@@ -30,7 +30,12 @@ export function LoginPage() {
     setServerError(null);
     login(formData, {
       onSuccess: (data) => {
-        navigate({ to: data.user.role === 'SuperAdmin' ? '/super-admin' : '/' });
+        // Safe way to extract the user from any possible data structure
+        // (whether it's { user }, { state: { user } }, or the user itself)
+        const user = data?.user || data?.state?.user || data;
+
+        const isSuperAdmin = user?.role?.toLowerCase().replace(/[^a-z0-9]/g, '') === 'superadmin';
+        navigate({ to: isSuperAdmin ? '/super-admin' : '/' });
       },
       onError: (err) => setServerError(err.message || 'Login failed.'),
     });

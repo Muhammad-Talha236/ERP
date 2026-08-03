@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { login } from '@/mocks/handlers/auth.mock';
+import { api } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
 /**
@@ -7,11 +7,22 @@ import { useAuthStore } from '@/store/authStore';
  * the session in authStore, which every route guard/component reads
  * from afterward.
  */
+
+const login = async (credentials) => {
+  const response = await api.post('/auth/login', credentials);
+  return response;
+};
+
 export function useLogin() {
   const setSession = useAuthStore((state) => state.setSession);
 
   return useMutation({
     mutationFn: login,
-    onSuccess: (data) => setSession(data),
+    onSuccess: (data) => {
+      setSession({
+        user: data.user,
+        accessToken: data.token, // 👈 backend response ka field-name yahan match karo
+      });
+    },
   });
 }

@@ -1,13 +1,15 @@
 import PropTypes from 'prop-types';
-import { Calendar } from 'lucide-react';
+import { Calendar, DollarSign, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/Badge';
 import { getPriorityVariant } from '@/features/Purchaseorder/utils/productionOrderStatusVariant';
 
 /**
- * ProductionOrderCard — back to an ORDER card, showing a
- * "X/Y bundles complete" rollup instead of full bundle detail.
- * Clicking opens OrderSummaryModal (via the parent's onClick).
+ * ProductionOrderCard — order card now shows:
+ *  - Total expense (sum of all workflow steps' expense)
+ *  - Bundles In/Out: "In" = still in the pipeline (not yet
+ *    Completed), "Out" = finished and shipped out
+ * matching the requirement's "expenses, bundles in/out" line items.
  */
 export function ProductionOrderCard({ order, onClick }) {
   return (
@@ -23,10 +25,20 @@ export function ProductionOrderCard({ order, onClick }) {
       <p className="text-sm font-semibold text-text-primary">{order.productName}</p>
       <p className="text-xs text-text-secondary mt-0.5">{order.customerName}</p>
 
+      <div className="flex items-center gap-1 text-xs text-text-secondary mt-2">
+        <DollarSign size={12} />
+        Expense: ${order.totalExpense.toLocaleString()}
+      </div>
+
       <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
-        <span className="text-xs text-text-secondary">
-          {order.completedBundles}/{order.totalBundles} bundles complete
-        </span>
+        <div className="flex items-center gap-3 text-xs text-text-secondary">
+          <span className="flex items-center gap-1">
+            <ArrowDownToLine size={12} className="text-info" /> {order.bundlesIn} in
+          </span>
+          <span className="flex items-center gap-1">
+            <ArrowUpFromLine size={12} className="text-success" /> {order.bundlesOut} out
+          </span>
+        </div>
         <div className="flex items-center gap-1 text-xs text-text-secondary">
           <Calendar size={12} />
           {format(new Date(order.deliveryDate), 'MMM d')}

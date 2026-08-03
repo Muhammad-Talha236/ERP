@@ -91,12 +91,40 @@ export async function createProductionOrder(newOrder) {
 }
 
 /** Called by productionBundle.mock.js after any bundle event, to keep order.status in sync. */
+/**
+ * Called whenever bundle events change an order's derived status.
+ * Now also STAMPS receivedDate/completedDate automatically:
+ *  - receivedDate is set the FIRST time status leaves 'Pending'
+ *  - completedDate is set the FIRST time status becomes 'Completed'
+ * Both are set once and never overwritten, so re-triggering the
+ * same status change later doesn't reset the original date.
+ */
 export async function updateProductionOrderStage(id, { currentStageOrder, status }) {
   await wait(200);
-  productionOrders = productionOrders.map((po) => (po.id === id ? { ...po, currentStageOrder, status } : po));
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  productionOrders = productionOrders.map((po) => {
+    if (po.id !== id) return po;
+
+    const updates = { currentStageOrder, status };
+    if (status !== 'Pending' && !po.receivedDate) updates.receivedDate = today;
+    if (status === 'Completed' && !po.completedDate) updates.completedDate = today;
+
+    return { ...po, ...updates };
+  });
+
   return productionOrders.find((po) => po.id === id);
 }
-
+/**
+ * Simulates GET /api/v1/purchase-order-steps — ALL steps across ALL
+ * orders in one call, used by the Kanban page to compute each
+ * order's total expense without needing N separate per-order fetches.
+ */
+export async function fetchAllOrderWorkflowSteps() {
+  await wait(300);
+  return [...orderWorkflowSteps];
+}
 export async function fetchOrderWorkflowSteps(orderId) {
   await wait(250);
   return orderWorkflowSteps.filter((s) => s.orderId === orderId).sort((a, b) => a.stageOrder - b.stageOrder);

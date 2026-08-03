@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchEmployeeById } from '@/mocks/handlers/employee.mock';
+import { api } from '@/services/api';
 
 /**
  * useEmployee — fetches a single employee's full record by ID.
@@ -10,7 +10,10 @@ import { fetchEmployeeById } from '@/mocks/handlers/employee.mock';
 export function useEmployee(id) {
   return useQuery({
     queryKey: ['employees', id],
-    queryFn: () => fetchEmployeeById(id),
+    queryFn: async () => {
+      const response = await api.get(`/employees/${id}`);
+      return response.employee; // Backend wraps in { success: true, employee: {...} }
+    },
     enabled: Boolean(id),
   });
 }
