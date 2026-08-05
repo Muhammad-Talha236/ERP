@@ -73,6 +73,18 @@ export const Employee = {
     return mapRowToEmployee(result.rows[0]);
   },
 
+  /**
+   * findByTenant — supports optional search/department/status filters.
+   *
+   * FIX: the frontend's "no filter selected" sentinel is the
+   * lowercase string 'all' (see EmployeesPage.jsx's initial filter
+   * state: { department: 'all' }), NOT 'All Departments'. The old
+   * check here only recognized 'All Departments', so every page
+   * load — which always sends department=all — was silently
+   * filtered down to "WHERE department = 'all'", matching zero
+   * real rows. Comparing case-insensitively against 'all' fixes it
+   * for both department and status.
+   */
   findByTenant: async (tenantId, filters = {}) => {
     const { search, department, status } = filters;
     let query = `
@@ -82,13 +94,13 @@ export const Employee = {
     const values = [tenantId];
     let paramCounter = 2;
 
-    if (department && department !== 'All Departments' && department.trim() !== '') {
+    if (department && department.trim() !== '' && department.toLowerCase() !== 'all') {
       query += ` AND department = $${paramCounter}`;
       values.push(department);
       paramCounter++;
     }
 
-    if (status && status !== 'All Statuses' && status.trim() !== '') {
+    if (status && status.trim() !== '' && status.toLowerCase() !== 'all') {
       query += ` AND status = $${paramCounter}`;
       values.push(status);
       paramCounter++;

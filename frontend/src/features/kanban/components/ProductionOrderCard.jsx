@@ -5,11 +5,10 @@ import { Badge } from '@/components/ui/Badge';
 import { getPriorityVariant } from '@/features/Purchaseorder/utils/productionOrderStatusVariant';
 
 /**
- * ProductionOrderCard — order card now shows:
- *  - Total expense (sum of all workflow steps' expense)
- *  - Bundles In/Out: "In" = still in the pipeline (not yet
- *    Completed), "Out" = finished and shipped out
- * matching the requirement's "expenses, bundles in/out" line items.
+ * ProductionOrderCard — compact summary only: total expense, and a
+ * single overall "X in / Y out" line. Per-stage detail (which
+ * bundles are where) lives ONLY in OrderSummaryModal, so the card
+ * layout stays clean regardless of how many stages an order has.
  */
 export function ProductionOrderCard({ order, onClick }) {
   return (

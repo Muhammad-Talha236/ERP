@@ -12,6 +12,14 @@ dotenv.config();
 
 const app = express();
 
+// FIX: disable Express's default ETag/conditional-GET caching.
+// Without this, the browser can send If-None-Match on a GET and
+// receive a 304 (empty body, "use your old cached copy") even
+// after the underlying data has changed — exactly what caused
+// employees added directly in Neon to not show up until this was
+// disabled. API responses should always be fresh, never cached.
+app.disable('etag');
+
 // Connect to PostgreSQL
 await connectDB();
 

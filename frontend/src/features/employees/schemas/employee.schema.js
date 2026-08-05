@@ -3,13 +3,19 @@ import { z } from 'zod';
 /**
  * employeeSchema — validation rules for the Employee create/edit form.
  *
- * Mirrors the Validation Rules table in
- * docs/04_Database_Design_Part2.md Section 6, so frontend validation
- * and (eventually) backend validation stay in agreement.
+ * FIX: previously this schema required `departmentId` and
+ * `designationId` fields, but EmployeeFormModal.jsx never had
+ * inputs for them — only `department` and `designation` (plain
+ * text) are actually collected. Since those two phantom fields
+ * could never be filled, validation ALWAYS failed silently
+ * (react-hook-form blocks submit on a failed zodResolver check,
+ * and no input displayed `errors.departmentId`/`errors.designationId`,
+ * so nothing visibly happened when clicking "Add Employee").
+ * Removed them — department/designation are stored as plain text
+ * columns on the employees table, matching backend/src/models/employee.js.
  *
- * Used by:
- *  - EmployeeFormModal.jsx (via @hookform/resolvers/zod)
- *  - Could also validate mock data shape in tests later
+ * Mirrors the Validation Rules table in
+ * docs/04_Database_Design_Part2.md Section 6.
  */
 export const employeeSchema = z.object({
   employeeCode: z
@@ -27,10 +33,8 @@ export const employeeSchema = z.object({
     .min(1, 'Last name is required')
     .max(100, 'Last name must be 100 characters or fewer'),
 
-  departmentId: z.string().min(1, 'Department is required'),
   department: z.string().min(1, 'Department is required'),
 
-  designationId: z.string().min(1, 'Designation is required'),
   designation: z.string().min(1, 'Designation is required'),
 
   email: z
@@ -74,9 +78,7 @@ export const employeeFormDefaults = {
   employeeCode: '',
   firstName: '',
   lastName: '',
-  departmentId: '',
   department: '',
-  designationId: '',
   designation: '',
   email: '',
   phone: '',
