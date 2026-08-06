@@ -8,7 +8,7 @@ import authRoutes from './routes/authRoutes.js';
 import tenantRoutes from './routes/tenantRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import workflowRoutes from './routes/workflowRoutes.js';
-
+import attendanceRoutes from './routes/attendanceRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -39,7 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/workflows', workflowRoutes);
-
+app.use('/api/attendance', attendanceRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({

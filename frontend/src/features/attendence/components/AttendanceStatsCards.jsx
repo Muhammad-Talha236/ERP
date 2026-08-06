@@ -1,34 +1,44 @@
-import { CheckCircle2, Clock, XCircle, CalendarClock } from 'lucide-react';
-import { StatCard } from '@/components/ui/StatCard';
+import PropTypes from 'prop-types';
+import { CheckCircle2, Clock, XCircle, CalendarDays } from 'lucide-react';
 
-/**
- * AttendanceStatsCards — "Present today / Late arrivals / Absent /
- * On leave" summary row at the top of the Attendance page.
- *
- * Counts are derived from today's attendance records passed in,
- * so they always reflect what's actually loaded — no separate
- * state to keep in sync.
- *
- * @param {Object} props
- * @param {AttendanceRecord[]} props.todayRecords
- */
-export function AttendanceStatsCards({ todayRecords }) {
+export function AttendanceStatsCards({ todayRecords = [] }) {
+  const total = todayRecords.length;
   const present = todayRecords.filter((r) => r.status === 'Present').length;
-  // "Late" is derived here rather than stored as its own status —
-  // any Present record with a check-in after 08:30 counts as late,
-  // matching the UI-only distinction documented in attendance.mock.js
-  const late = todayRecords.filter(
-    (r) => r.status === 'Present' && r.checkIn && r.checkIn > '08:30'
-  ).length;
+  const late = todayRecords.filter((r) => r.status === 'Late').length;
   const absent = todayRecords.filter((r) => r.status === 'Absent').length;
-  const onLeave = todayRecords.filter((r) => r.status === 'Leave').length;
+  const leave = todayRecords.filter((r) => r.status === 'Leave' || r.status === 'Half Day').length;
+
+  const stats = [
+    { title: 'Present today', value: present, icon: CheckCircle2, color: 'text-success bg-success/15' },
+    { title: 'Late arrivals', value: late, icon: Clock, color: 'text-warning bg-warning/15' },
+    { title: 'Absent', value: absent, icon: XCircle, color: 'text-danger bg-danger/15' },
+    { title: 'On leave', value: leave, icon: CalendarDays, color: 'text-info bg-info/15' },
+  ];
 
   return (
-    <div className="flex flex-wrap gap-4">
-      <StatCard label="Present today" value={present} icon={CheckCircle2} accent="success" />
-      <StatCard label="Late arrivals" value={late} icon={Clock} accent="warning" />
-      <StatCard label="Absent" value={absent} icon={XCircle} accent="danger" />
-      <StatCard label="On leave" value={onLeave} icon={CalendarClock} accent="info" />
+    // Grid: Mobile par 2 columns, Desktop par 4 columns
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+        return (
+          <div key={stat.title} className="rounded-card border border-border bg-background p-4 sm:p-6 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs sm:text-sm font-medium text-text-secondary truncate">{stat.title}</span>
+              <div className={`p-2 rounded-xl ${stat.color}`}>
+                <Icon size={18} />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight">
+              {stat.value}
+              {total > 0 && <span className="text-xs font-normal text-text-secondary ml-1.5">/ {total}</span>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+AttendanceStatsCards.propTypes = {
+  todayRecords: PropTypes.array,
+};

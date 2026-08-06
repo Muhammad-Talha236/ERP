@@ -114,3 +114,13 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgb(var(--color-text-secondary));
 }
+
+/* Modals ko mobile screens par fit karne ke liye */
+@media (max-width: 640px) {
+  .modal-content, [role="dialog"] {
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 1rem !important;
+  }
+}

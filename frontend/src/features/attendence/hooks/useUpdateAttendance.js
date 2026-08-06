@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { markAttendance } from '@/api/endpoints/attendance.api';
+import { updateAttendance } from '@/api/endpoints/attendance.api';
 
-export function useMarkAttendance() {
+export function useUpdateAttendance() {
   const queryClient = useQueryClient();
+  
   return useMutation({
-    mutationFn: markAttendance,
+    mutationFn: ({ id, updates }) => updateAttendance(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
     },

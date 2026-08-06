@@ -35,7 +35,7 @@ export function getAttendanceStatusVariant(status) {
  */
 export function getLeaveRequestStatusVariant(status) {
   switch (status) {
-    case 'Paid':
+    case 'Approved':
       return 'success';
     case 'Pending':
       return 'warning';
