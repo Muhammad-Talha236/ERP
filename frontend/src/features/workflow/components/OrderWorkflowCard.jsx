@@ -34,8 +34,20 @@ export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
   const completedBundleCount = (bundles ?? []).filter((b) => b.status === 'Completed').length;
   const totalBundleCount = bundles?.length ?? 0;
 
+  const deriveOrderStatusFromBundles = (orderBundles) => {
+    if (!orderBundles || orderBundles.length === 0) return { status: 'Pending', currentStageOrder: 1 };
+    const allCompleted = orderBundles.every((b) => b.status === 'Completed');
+    if (allCompleted) return { status: 'Completed', currentStageOrder: Math.max(...orderBundles.map((b) => b.currentStageOrder ?? 1)) };
+    const allNotStarted = orderBundles.every((b) => b.status === 'Not Started');
+    if (allNotStarted) return { status: 'Pending', currentStageOrder: 1 };
+    return { status: 'In Progress', currentStageOrder: Math.max(...orderBundles.map((b) => b.currentStageOrder ?? 1)) };
+  };
+
+  const derivedStatus = deriveOrderStatusFromBundles(bundles ?? []);
+  const displayOrderStatus = order.status === 'Completed' || order.status === 'Cancelled' ? order.status : derivedStatus.status;
+
   const canEditStructure =
-    order.status === 'Pending' && totalBundleCount <= 1 && (bundles?.[0]?.status ?? 'Not Started') === 'Not Started';
+    displayOrderStatus === 'Pending' && totalBundleCount <= 1 && (bundles?.[0]?.status ?? 'Not Started') === 'Not Started';
 
   return (
     <div className="rounded-card border border-border bg-background overflow-hidden">
@@ -60,7 +72,7 @@ export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
               {completedBundleCount}/{totalBundleCount} bundles complete
             </span>
           )}
-          <Badge variant={getProductionOrderStatusVariant(order.status)}>{order.status}</Badge>
+          <Badge variant={getProductionOrderStatusVariant(displayOrderStatus)}>{displayOrderStatus}</Badge>
         </div>
       </button>
 
@@ -98,22 +110,24 @@ export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
 
           {activeTab === 'Bundles' && (
             isBundlesLoading || isStepsLoading ? <LoadingSkeleton rows={3} /> : (
-              <BundleList
-                bundles={bundles ?? []}
-                steps={steps ?? []}
-                orderId={order.id}
-                isCreatingBundle={isCreatingBundle}
-                onCreateBundleDone={() => setIsCreatingBundle(false)}
-              />
+              <>
+                <BundleList
+                  bundles={bundles ?? []}
+                  steps={steps ?? []}
+                  orderId={order.id}
+                  isCreatingBundle={isCreatingBundle}
+                  onCreateBundleDone={() => setIsCreatingBundle(false)}
+                  onStartCreatingBundle={() => setIsCreatingBundle(true)}
+                />
+                {steps && (
+                  <EditStructureModal open={isEditStructureOpen} onOpenChange={setIsEditStructureOpen} orderId={order.id} steps={steps} />
+                )}
+              </>
             )
           )}
 
           {activeTab === 'Movement Log' && (
-            <OrderMovementLog movements={movements} isLoading={isMovementsLoading} />
-          )}
-
-          {steps && (
-            <EditStructureModal open={isEditStructureOpen} onOpenChange={setIsEditStructureOpen} orderId={order.id} steps={steps} />
+            <OrderMovementLog movements={movements ?? []} isLoading={isMovementsLoading} />
           )}
         </div>
       )}
@@ -123,6 +137,6 @@ export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
 
 OrderWorkflowCard.propTypes = {
   order: PropTypes.object.isRequired,
-  isExpanded: PropTypes.bool.isRequired,
+  isExpanded:PropTypes.bool.isRequired,
   onToggleExpand: PropTypes.func.isRequired,
 };

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { OrderWorkflowSection } from './components/OrderWorkflowSection';
+import { OrderWorkflowCard } from './components/OrderWorkflowCard';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { GitBranch } from 'lucide-react';
@@ -51,24 +51,15 @@ export function WorkflowPage() {
 
   return (
     <AppLayout title="Workflow" subtitle="Manage stages, bundles, and employee assignments">
-      <div className="space-y-8">
-        <OrderWorkflowSection
-          title="Needs Setup"
-          description="No employees assigned yet — nothing has started."
-          orders={activeOrders}
-          filterFn="unassigned"
-          expandedOrderId={expandedOrderId}
-          onToggleExpand={setExpandedOrderId}
-        />
-
-        <OrderWorkflowSection
-          title="In Progress"
-          description="At least one stage already has an assigned employee."
-          orders={activeOrders}
-          filterFn="assigned"
-          expandedOrderId={expandedOrderId}
-          onToggleExpand={setExpandedOrderId}
-        />
+      <div className="space-y-3">
+        {activeOrders.map((order) => (
+          <OrderWorkflowCard
+            key={order.id}
+            order={order}
+            isExpanded={expandedOrderId === order.id}
+            onToggleExpand={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+          />
+        ))}
       </div>
     </AppLayout>
   );

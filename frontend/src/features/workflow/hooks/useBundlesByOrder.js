@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchBundlesByOrder } from '@/mocks/handlers/productionBundle.mock';
+import { api } from '@/services/api';
 
 /**
  * useBundlesByOrder — fetches all bundles belonging to one order.
@@ -8,7 +8,10 @@ import { fetchBundlesByOrder } from '@/mocks/handlers/productionBundle.mock';
 export function useBundlesByOrder(orderId) {
   return useQuery({
     queryKey: ['productionOrders', orderId, 'bundles'],
-    queryFn: () => fetchBundlesByOrder(orderId),
+    queryFn: async () => {
+      const response = await api.get('/workflows/bundles', { params: { poNumber: orderId } });
+      return response.data;
+    },
     enabled: Boolean(orderId),
   });
 }

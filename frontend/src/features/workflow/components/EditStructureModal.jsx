@@ -1,60 +1,144 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { editStructureSchema } from '../schemas/editStructure.schema';
 import { useReplaceOrderWorkflowStructure } from '../hooks/useReplaceOrderWorkflowStructure';
+import { get } from '../../../services/api';
 
-/**
- * EditStructureModal — add/remove/rename/reposition an order's
- * workflow stages. Only ever opened when the order hasn't started
- * (all steps "Not Started") — the "Edit Structure" button that
- * triggers this is itself only shown under that condition.
- *
- * Reordering is position-number based (same as the New Order form's
- * custom builder) — no drag-and-drop.
- *
- * @param {Object} props
- * @param {boolean} props.open
- * @param {(open: boolean) => void} props.onOpenChange
- * @param {string} props.orderId
- * @param {OrderWorkflowStep[]} props.steps - current steps, to pre-fill the form
- */
 export function EditStructureModal({ open, onOpenChange, orderId, steps }) {
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm({
-    resolver: zodResolver(editStructureSchema),
-  });
+  const [loadingStages, setLoadingStages] = useState(false);
 
+  const { register, control, reset, getValues } = useForm();
   const { fields, append, remove } = useFieldArray({ control, name: 'steps' });
   const { mutate: replaceStructure, isPending } = useReplaceOrderWorkflowStructure();
 
   useEffect(() => {
-    if (open) {
-      reset({
-        steps: [...steps]
-          .sort((a, b) => a.stageOrder - b.stageOrder)
-          .map((s) => ({
+    const fetchLiveStages = async () => {
+      if (!orderId) return;
+      try {
+        setLoadingStages(true);
+        const response = await get(`/workflows/stages/${orderId}`);
+        
+        if (response && response.success && response.data && response.data.length > 0) {
+          const formattedSteps = response.data.map((s) => ({
             id: s.id,
-            position: s.stageOrder,
-            stageName: s.stageName,
-            headcount: s.headcount,
-            wagePerPerson: s.wagePerPerson,
-            expense: s.expense,
-          })),
-      });
-    }
-  }, [open, steps, reset]);
+            position: Math.max(1, Number(s.position) || 1),
+            stageName: s.stage_name || '',
+            headcount: Math.max(1, Number(s.headcount) || 1),
+            wagePerPerson: s.wage_per_person ?? s.wagePerPerson ?? 0,
+            expense: Math.max(0, Number(s.expense) || 0),
+          }));
+          reset({ steps: formattedSteps });
+        } else {
+          fallbackToPropSteps();
+        }
+      } catch (err) {
+        console.warn("Backend fetch failed, falling back to props:", err);
+        fallbackToPropSteps();
+      } finally {
+        setLoadingStages(false);
+      }
+    };
 
-  const onSubmit = (formData) => {
-    replaceStructure({ orderId, steps: formData.steps }, { onSuccess: () => onOpenChange(false) });
+    const fallbackToPropSteps = () => {
+      if (steps && steps.length > 0) {
+        reset({
+          steps: [...steps]
+            .sort((a, b) => (a.stageOrder || a.position) - (b.stageOrder || b.position))
+            .map((s) => ({
+              id: s.id,
+              position: Math.max(1, Number(s.stageOrder || s.position || 1)),
+              stageName: s.stageName || s.stage_name || '',
+              headcount: Math.max(1, Number(s.headcount || 1)),
+              wagePerPerson: s.wagePerPerson ?? s.wage_per_person ?? 0,
+              expense: Math.max(0, Number(s.expense || 0)),
+            })),
+        });
+      }
+    };
+
+    if (open) {
+      fetchLiveStages();
+    }
+  }, [open, orderId, steps, reset]);
+
+  const handleSaveClick = () => {
+    const formValues = getValues();
+    const rawSteps = formValues.steps || [];
+    const totalStages = rawSteps.length;
+
+    const positions = [];
+    const duplicatePositions = new Set();
+    let outOfRangePosition = false;
+    let invalidPositionValue = null;
+
+    // 1. Validation Checks
+    for (let i = 0; i < rawSteps.length; i++) {
+      const pos = parseInt(rawSteps[i].position, 10);
+      
+      // Check 1: Out of range check (Must be between 1 and totalStages)
+      if (pos < 1 || pos > totalStages) {
+        outOfRangePosition = true;
+        invalidPositionValue = pos;
+        break;
+      }
+
+      // Check 2: Duplicate check
+      if (positions.includes(pos)) {
+        duplicatePositions.add(pos);
+      } else {
+        positions.push(pos);
+      }
+    }
+
+    if (outOfRangePosition) {
+      alert(`Invalid position ${invalidPositionValue}! Position must be between 1 and ${totalStages} (total number of stages).`);
+      return;
+    }
+
+    if (duplicatePositions.size > 0) {
+      alert(`Duplicate positions detected! Position ${Array.from(duplicatePositions).join(', ')} is assigned to multiple stages. Each stage must have a unique position.`);
+      return;
+    }
+
+    // 2. Format payload for API
+    const stagesPayload = rawSteps.map((s, index) => ({
+      position: parseInt(s.position || index + 1, 10),
+      stage_name: (s.stageName || '').trim() || `Stage ${index + 1}`,
+      headcount: Math.max(1, parseInt(s.headcount || 1, 10)),
+      wage_per_person: Math.max(0, parseFloat(s.wagePerPerson || 0)),
+      expense: Math.max(0, parseFloat(s.expense || 0)),
+    }));
+
+    // Sort by position before sending to backend
+    stagesPayload.sort((a, b) => a.position - b.position);
+
+    replaceStructure(
+      { orderId, stages: stagesPayload },
+      {
+        onSuccess: () => {
+          onOpenChange(false);
+        },
+        onError: (err) => {
+          console.error("Mutation Error Details:", err);
+          const errorMsg = err?.response?.data?.message || err?.message || "Failed to update backend";
+          alert("Save error: " + errorMsg);
+        },
+      }
+    );
   };
 
   const handleAddStage = () => {
-    append({ position: fields.length + 1, stageName: '', headcount: 1, wagePerPerson: 0, expense: 0 });
+    append({
+      position: fields.length + 1,
+      stageName: '',
+      headcount: 1,
+      wagePerPerson: 0,
+      expense: 0,
+    });
   };
 
   return (
@@ -62,65 +146,91 @@ export function EditStructureModal({ open, onOpenChange, orderId, steps }) {
       open={open}
       onOpenChange={onOpenChange}
       title="Edit Workflow Structure"
-      description="Add, remove, rename, or reorder stages for this order."
+      description={`Add, remove, rename, or reorder stages for ${orderId || 'Order'}.`}
       size="lg"
       footer={
         <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isPending}>Cancel</Button>
-          <Button onClick={handleSubmit(onSubmit)} disabled={isPending}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isPending || loadingStages}>
+            Cancel
+          </Button>
+          <Button 
+            type="button" 
+            onClick={handleSaveClick} 
+            disabled={isPending || loadingStages}
+          >
             {isPending ? 'Saving...' : 'Save Structure'}
           </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-text-primary">Stages</p>
-          <Button type="button" variant="ghost" size="sm" onClick={handleAddStage}>
-            <Plus size={14} /> Add Stage
-          </Button>
+      {loadingStages ? (
+        <div className="p-6 text-center text-sm text-text-secondary">
+          Loading workflow stages from database...
         </div>
-
-        {fields.map((field, index) => (
-          <div key={field.id} className="rounded-input border border-border p-3">
-            <div className="grid grid-cols-[70px_1fr_auto] gap-2 items-start">
-              <Input
-                type="number"
-                label="Position"
-                error={errors.steps?.[index]?.position?.message}
-                {...register(`steps.${index}.position`)}
-              />
-              <Input
-                label="Stage Name"
-                error={errors.steps?.[index]?.stageName?.message}
-                {...register(`steps.${index}.stageName`)}
-              />
-              <button
-                type="button"
-                onClick={() => remove(index)}
-                disabled={fields.length === 1}
-                className="mt-6 text-text-secondary hover:text-danger disabled:opacity-30 disabled:hover:text-text-secondary"
-                aria-label="Remove stage"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <Input type="number" label="Headcount" error={errors.steps?.[index]?.headcount?.message} {...register(`steps.${index}.headcount`)} />
-              <Input type="number" step="0.01" label="Wage per Person" error={errors.steps?.[index]?.wagePerPerson?.message} {...register(`steps.${index}.wagePerPerson`)} />
-              <Input type="number" step="0.01" label="Expense" error={errors.steps?.[index]?.expense?.message} {...register(`steps.${index}.expense`)} />
-            </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-text-primary">Stages</p>
+            <Button type="button" variant="ghost" size="sm" onClick={handleAddStage}>
+              <Plus size={14} /> Add Stage
+            </Button>
           </div>
-        ))}
 
-        {errors.steps?.message && <p className="text-xs text-danger">{errors.steps.message}</p>}
+          {fields.map((field, index) => (
+            <div key={field.id} className="rounded-input border border-border p-3">
+              <div className="grid grid-cols-[70px_1fr_auto] gap-2 items-start">
+                <Input
+                  type="number"
+                  min="1"
+                  max={fields.length}
+                  label="Position"
+                  {...register(`steps.${index}.position`)}
+                />
+                <Input
+                  label="Stage Name"
+                  {...register(`steps.${index}.stageName`)}
+                />
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  disabled={fields.length === 1}
+                  className="mt-6 text-text-secondary hover:text-danger disabled:opacity-30 disabled:hover:text-text-secondary"
+                  aria-label="Remove stage"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
 
-        <p className="text-xs text-text-secondary">
-          Stages run in order of their Position number (lowest first). Employee
-          assignments, if any, will be cleared since the structure has changed.
-        </p>
-      </form>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                <Input
+                  type="number"
+                  min="1"
+                  label="Headcount"
+                  {...register(`steps.${index}.headcount`)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  label="Wage per Person"
+                  {...register(`steps.${index}.wagePerPerson`)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  label="Expense"
+                  {...register(`steps.${index}.expense`)}
+                />
+              </div>
+            </div>
+          ))}
+
+          <p className="text-xs text-text-secondary">
+            Stages run in order of their Position number (1 to {fields.length}). Each position must be unique.
+          </p>
+        </div>
+      )}
     </Modal>
   );
 }

@@ -9,10 +9,16 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useEmployees } from './hooks/useEmployees';
 import { useDeleteEmployee } from './hooks/useDeleteEmployee';
-import { employeesMockData } from '@/mocks/data/employees.mock';
 
 /**
  * EmployeesPage — the main "Employees" screen.
+ *
+ * FIX: departmentOptions now comes from the REAL employees list
+ * (fetched from the backend), not from the old mock data file.
+ * A second, always-unfiltered useEmployees() call powers just the
+ * dropdown options, so filtering by department doesn't shrink the
+ * dropdown's own choices (React Query caches this separately from
+ * the filtered list, so it's not an extra real cost after the first load).
  */
 export function EmployeesPage() {
   const navigate = useNavigate();
@@ -21,12 +27,13 @@ export function EmployeesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const { data: employees, isLoading, isError, refetch } = useEmployees(filters);
+  const { data: allEmployees } = useEmployees(); // unfiltered — only used for building the dropdown
   const { mutate: deleteEmployee, isPending: isDeleting } = useDeleteEmployee();
 
   const departmentOptions = useMemo(() => {
-    const unique = new Set(employeesMockData.map((e) => e.department));
+    const unique = new Set((allEmployees ?? []).map((e) => e.department).filter(Boolean));
     return Array.from(unique).sort();
-  }, []);
+  }, [allEmployees]);
 
   const handleAddClick = () => setFormModal({ open: true, employee: null });
   const handleEditClick = (employee) => setFormModal({ open: true, employee });

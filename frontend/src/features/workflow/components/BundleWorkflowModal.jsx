@@ -7,33 +7,47 @@ import { useAdvanceBundleStage } from '../hooks/useAdvanceBundleStage';
 import { StageAssignmentPanel } from './StageAssignmentPanel';
 
 /**
- * BundleWorkflowModal — the stage-by-stage table for ONE SPECIFIC
- * BUNDLE.
- *
- * Every row can now be expanded (not just the current active one),
- * so employees can be pre-assigned to ANY stage in advance — no
- * separate "Bulk Assign" screen needed. Sequential rules are still
- * enforced inside StageAssignmentPanel: "Mark my work done" only
- * appears there for the bundle's actual current active stage;
- * assignments made to a future stage just wait as a visible plan
- * until their turn comes.
+ * BundleWorkflowModal — Stage-by-stage workflow table for a specific bundle.
  */
-export function BundleWorkflowModal({ bundle, steps }) {
+export function BundleWorkflowModal({ bundle, steps = [] }) {
   const [expandedStepId, setExpandedStepId] = useState(null);
 
-  const { data: assignments } = useBundleStageAssignments(bundle?.id);
+  const { data: assignments = [] } = useBundleStageAssignments(bundle?.id);
   const { mutate: advanceStage } = useAdvanceBundleStage();
 
-  const sortedSteps = useMemo(() => [...steps].sort((a, b) => a.stageOrder - b.stageOrder), [steps]);
+  // 1. Unified order/position sorting logic (handles stageOrder or position)
+  const sortedSteps = useMemo(() => {
+    if (!Array.isArray(steps)) return [];
+    return [...steps].sort((a, b) => {
+      const posA = Number(a.stageOrder ?? a.position ?? 0);
+      const posB = Number(b.stageOrder ?? b.position ?? 0);
+      return posA - posB;
+    });
+  }, [steps]);
 
+  // 2. Stage completion & lock status determination
   const stageStatuses = useMemo(() => {
     let previousComplete = true;
     return sortedSteps.map((step) => {
-      const stepAssignments = (assignments ?? []).filter((a) => a.stepId === step.id);
-      const isComplete = stepAssignments.length > 0 && stepAssignments.every((a) => a.isDone);
+      // Safe matching for both IDs, step names, and stage names
+      const stepAssignments = assignments.filter((a) => {
+        const matchStepId = String(a.stepId || a.step_id || '') === String(step.id || '');
+        
+        const stepNameVal = String(step.stageName || step.stage_name || '').trim().toLowerCase();
+        const assignmentStageName = String(a.stageName || a.stage_name || '').trim().toLowerCase();
+        const matchStageName = stepNameVal && assignmentStageName && (stepNameVal === assignmentStageName);
+
+        return matchStepId || matchStageName;
+      });
+      
+      // Stage complete handling
+      const isComplete = step.status === 'Completed' || 
+        (stepAssignments.length > 0 && stepAssignments.every((a) => a.isDone || a.status === 'Completed'));
+      
       const isLocked = !previousComplete;
       previousComplete = isComplete;
-      return { step, isComplete, isLocked };
+
+      return { step, isComplete, isLocked, assignments: stepAssignments };
     });
   }, [sortedSteps, assignments]);
 
@@ -44,17 +58,23 @@ export function BundleWorkflowModal({ bundle, steps }) {
   const handleStepCompleted = (stepIndex) => {
     const step = sortedSteps[stepIndex];
     const nextStep = sortedSteps[stepIndex + 1];
+
     advanceStage({
-      bundleId: bundle.id,
-      nextStageOrder: nextStep ? nextStep.stageOrder : step.stageOrder,
-      nextStageName: nextStep ? nextStep.stageName : step.stageName,
+      bundleId: bundle.id || bundle.bundleNumber,
+      currentStepId: step.id,
+      nextStageOrder: nextStep ? (nextStep.stageOrder ?? nextStep.position) : (step.stageOrder ?? step.position),
+      nextStageName: nextStep ? (nextStep.stageName || nextStep.stage_name) : (step.stageName || step.stage_name),
       isLastStage: !nextStep,
+    }, {
+      onSuccess: () => {
+        setExpandedStepId(null);
+      }
     });
   };
 
   return (
     <div className="overflow-x-auto rounded-input border border-border">
-      <table className="w-full min-w-[640px]">
+      <table className="w-full min-w-160">
         <thead>
           <tr className="border-b border-border bg-surface/50">
             {['STAGE', 'EXPENSE', 'WAGE/PERSON', 'HEADCOUNT', 'STATUS'].map((col) => (
@@ -71,14 +91,14 @@ export function BundleWorkflowModal({ bundle, steps }) {
 
             return (
               <BundleStepRow
-                key={step.id}
+                key={step.id || index}
                 step={step}
                 isActive={isActive}
                 isLocked={isLocked}
                 isComplete={isComplete}
                 isExpanded={isExpanded}
                 onToggleExpand={() => setExpandedStepId(isExpanded ? null : step.id)}
-                bundleId={bundle.id}
+                bundleId={bundle.id || bundle.bundleNumber}
                 onStepCompleted={() => handleStepCompleted(index)}
               />
             );
@@ -90,6 +110,16 @@ export function BundleWorkflowModal({ bundle, steps }) {
 }
 
 function BundleStepRow({ step, isActive, isLocked, isComplete, isExpanded, onToggleExpand, bundleId, onStepCompleted }) {
+  const expenseVal = Number(step.expense || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const wageVal = Number(step.wagePerPerson ?? step.wage_per_person ?? 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const headcountVal = Number(step.headcount || 1);
+
   return (
     <>
       <tr
@@ -100,12 +130,12 @@ function BundleStepRow({ step, isActive, isLocked, isComplete, isExpanded, onTog
           <div className="flex items-center gap-1">
             {isComplete && <CheckCircle2 size={14} className="text-success" />}
             {!isComplete && (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} className="text-text-secondary" />)}
-            {step.stageName}
+            {step.stageName || step.stage_name}
           </div>
         </td>
-        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.expense.toLocaleString()}</td>
-        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.wagePerPerson}</td>
-        <td className="py-2 px-3 text-sm text-text-secondary">{step.headcount}</td>
+        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${expenseVal}</td>
+        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${wageVal}</td>
+        <td className="py-2 px-3 text-sm text-text-secondary">{headcountVal}</td>
         <td className="py-2 px-3">
           <Badge variant={isComplete ? 'success' : isActive ? 'info' : 'neutral'}>
             {isComplete ? 'Completed' : isActive ? 'In Progress' : isLocked ? 'Waiting' : 'Not Started'}
@@ -116,7 +146,6 @@ function BundleStepRow({ step, isActive, isLocked, isComplete, isExpanded, onTog
       {isExpanded && !isComplete && (
         <tr className="border-b border-border last:border-0 bg-surface/20" onClick={(e) => e.stopPropagation()}>
           <td colSpan={5} className="px-3 py-3">
-            
             <StageAssignmentPanel
               step={step}
               onStepCompleted={onStepCompleted}
@@ -131,7 +160,18 @@ function BundleStepRow({ step, isActive, isLocked, isComplete, isExpanded, onTog
   );
 }
 
+BundleStepRow.propTypes = {
+  step: PropTypes.object.isRequired,
+  isActive: PropTypes.bool,
+  isLocked: PropTypes.bool,
+  isComplete: PropTypes.bool,
+  isExpanded: PropTypes.bool,
+  onToggleExpand: PropTypes.func.isRequired,
+  bundleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  onStepCompleted: PropTypes.func.isRequired,
+};
+
 BundleWorkflowModal.propTypes = {
   bundle: PropTypes.object,
-  steps: PropTypes.array.isRequired,
+  steps: PropTypes.array,
 };

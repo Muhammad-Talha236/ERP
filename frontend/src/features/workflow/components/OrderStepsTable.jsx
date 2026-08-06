@@ -40,7 +40,7 @@ export function OrderStepsTable({ steps, order }) {
 
   return (
     <div className="overflow-x-auto rounded-input border border-border">
-      <table className="w-full min-w-[720px]">
+      <table className="w-full min-w-180">
         <thead>
           <tr className="border-b border-border bg-surface/50">
             {['STAGE', 'EXPENSE', 'WAGE/PERSON', 'HEADCOUNT', 'STATUS', ''].map((col) => (
@@ -116,6 +116,16 @@ function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, o
     );
   }
 
+  const wageDisplay = Number(step.wagePerPerson ?? step.wage_per_person ?? 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const expenseDisplay = Number(step.expense ?? 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return (
     <>
       <tr
@@ -128,8 +138,8 @@ function StepRow({ step, isActive, isFuture, isQC, isExpanded, onToggleExpand, o
             {step.stageName}
           </div>
         </td>
-        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.expense.toLocaleString()}</td>
-        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${step.wagePerPerson}</td>
+        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${expenseDisplay}</td>
+        <td className="py-2 px-3 text-sm text-text-secondary whitespace-nowrap">${wageDisplay}</td>
         <td className="py-2 px-3 text-sm text-text-secondary">{step.headcount}</td>
         <td className="py-2 px-3">
           <Badge variant={isCompleted ? 'success' : isActive ? (isQC ? 'warning' : 'info') : 'neutral'}>

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchOrderMovements } from '@/mocks/handlers/productionBundle.mock';
+import { api } from '@/services/api';
 
 /**
  * useOrderMovements — fetches every bundle movement log entry for
@@ -10,7 +10,10 @@ import { fetchOrderMovements } from '@/mocks/handlers/productionBundle.mock';
 export function useOrderMovements(orderId) {
   return useQuery({
     queryKey: ['productionOrders', orderId, 'movements'],
-    queryFn: () => fetchOrderMovements(orderId),
+    queryFn: async () => {
+      const response = await api.get(`/workflows/logs/${orderId}`);
+      return response.data;
+    },
     enabled: Boolean(orderId),
   });
 }

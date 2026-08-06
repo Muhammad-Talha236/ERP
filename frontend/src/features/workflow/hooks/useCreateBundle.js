@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { post } from '@/services/api';
 
-export function useSplitIntoBundles() {
+export function useCreateBundle() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ sourceBundleId, newQty, poNumber }) => {
-      const data = await post('/workflows/bundles/split', { sourceBundleId, newQty, poNumber });
+    mutationFn: async ({ poNumber, quantity, stageName }) => {
+      const data = await post('/workflows/bundles', { poNumber, quantity, stageName });
       return data;
     },
     onSuccess: (_data, variables) => {

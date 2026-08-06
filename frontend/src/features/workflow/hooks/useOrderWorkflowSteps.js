@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchOrderWorkflowSteps } from '@/mocks/handlers/productionOrder.mock';
+import { api } from '@/services/api';
 
 /**
  * useOrderWorkflowSteps — fetches ONE order's own editable workflow
@@ -10,7 +10,10 @@ import { fetchOrderWorkflowSteps } from '@/mocks/handlers/productionOrder.mock';
 export function useOrderWorkflowSteps(orderId) {
   return useQuery({
     queryKey: ['productionOrders', orderId, 'steps'],
-    queryFn: () => fetchOrderWorkflowSteps(orderId),
+    queryFn: async () => {
+      const response = await api.get(`/workflows/stages/${orderId}`);
+      return response.data;
+    },
     enabled: Boolean(orderId),
   });
 }

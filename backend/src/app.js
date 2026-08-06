@@ -7,6 +7,7 @@ import { connectDB } from './config/database.js';
 import authRoutes from './routes/authRoutes.js';
 import tenantRoutes from './routes/tenantRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
+import workflowRoutes from './routes/workflowRoutes.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/workflows', workflowRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
