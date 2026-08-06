@@ -24,7 +24,7 @@ export function EmployeeStatsCards({ employees }) {
     <div className="flex flex-wrap gap-4">
       <StatCard label="Total" value={total} icon={Users} accent="primary" />
       <StatCard label="Active" value={active} icon={UserCheck} accent="success" />
-      <StatCard label="On Leave" value={onLeave} icon={UserMinus} accent="warning" />
+
       <StatCard label="Inactive" value={inactive} icon={UserX} accent="danger" />
     </div>
   );

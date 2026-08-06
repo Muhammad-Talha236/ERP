@@ -99,7 +99,7 @@ export function EmployeeFormModal({ open, onOpenChange, employee }) {
           options={[
             { label: 'Active', value: 'Active' },
             { label: 'Inactive', value: 'Inactive' },
-            { label: 'On Leave', value: 'On Leave' },
+        
           ]}
           {...register('status')}
         />

@@ -1,5 +1,5 @@
+import { pool } from '../config/database.js'; // Kyunki db.js mein named export { pool } hai
 import { Employee } from '../models/employee.js';
-
 export const createEmployee = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
@@ -103,21 +103,30 @@ export const updateEmployee = async (req, res) => {
     console.error('Update employee error:', error);
     res.status(500).json({ message: 'Server error' });
   }
-};
-
-export const deleteEmployee = async (req, res) => {
+};export const deleteEmployee = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
-    const result = await Employee.delete(req.params.id, tenantId);
+    const employeeId = req.params.id;
 
-    if (!result) {
-      return res.status(404).json({ message: 'Employee not found or unauthorized' });
+    // 1. Related attendance aur leave requests delete karein
+    await pool.query(
+      `DELETE FROM attendance WHERE employee_id = $1 AND tenant_id = $2`,
+      [employeeId, tenantId]
+    );
+
+    await pool.query(
+      `DELETE FROM leave_requests WHERE employee_id = $1 AND tenant_id = $2`,
+      [employeeId, tenantId]
+    );
+
+    // 2. Employee ko delete karein
+    const deleted = await Employee.delete(employeeId, tenantId);
+    
+    if (!deleted) {
+      return res.status(404).json({ message: 'Employee not found' });
     }
 
-    res.json({
-      success: true,
-      message: 'Employee deleted successfully',
-    });
+    res.json({ success: true, message: 'Employee and related records deleted successfully' });
   } catch (error) {
     console.error('Delete employee error:', error);
     res.status(500).json({ message: 'Server error' });
