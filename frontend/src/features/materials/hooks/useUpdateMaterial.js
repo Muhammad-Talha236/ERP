@@ -1,15 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateMaterial } from '@/mocks/handlers/material.mock';
+import { api } from '@/services/api';
 
-/**
- * useUpdateMaterial — mutation hook for editing an existing material
- * (e.g. adjusting stock, updating price, changing status).
- */
 export function useUpdateMaterial() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ id, updates }) => updateMaterial(id, updates),
+    mutationFn: async ({ id, updates }) => {
+      const response = await api.put(`/materials/${id}`, updates);
+      return response.material || response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
     },

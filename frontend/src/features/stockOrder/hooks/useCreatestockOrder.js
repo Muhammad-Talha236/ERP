@@ -1,14 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPurchaseOrder } from '@/mocks/handlers/purchaseOrder.mock';
+import { api } from '@/services/api';
 
-/**
- * useCreatePurchaseOrder — mutation hook for the "New PO" form.
- */
 export function useCreatePurchaseOrder() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: createPurchaseOrder,
+    mutationFn: async (newPO) => {
+      const response = await api.post('/purchase-orders', newPO);
+      return response.po || response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
     },

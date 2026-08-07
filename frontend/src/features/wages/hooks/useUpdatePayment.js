@@ -1,19 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updatePaymentTransaction } from '@/mocks/handlers/wage.mock';
+import { api } from '@/services/api';
 
-/**
- * useUpdatePayment — mutation hook for editing an existing payment
- * or advance transaction. Invalidates both the wages list (in case
- * amountPaid/status changed) and this wage's payment history.
- */
 export function useUpdatePayment() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ transactionId, ...updates }) => updatePaymentTransaction(transactionId, updates),
+    mutationFn: async ({ transactionId, ...updates }) => {
+      const response = await api.put(`/wages/payments/${transactionId}`, updates);
+      return response;
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wages'] });
-      queryClient.invalidateQueries({ queryKey: ['wages', data.wage.id, 'payments'] });
+      if (data?.wage?.id) {
+        queryClient.invalidateQueries({ queryKey: ['wages', data.wage.id, 'payments'] });
+      }
     },
   });
 }

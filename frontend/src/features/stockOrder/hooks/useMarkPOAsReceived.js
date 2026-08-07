@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { markPOAsReceived } from '@/mocks/handlers/purchaseOrder.mock';
+import { api } from '@/services/api';
 
 /**
  * useMarkPOAsReceived — mutation hook for the "Mark as Received"
@@ -9,9 +9,13 @@ export function useMarkPOAsReceived() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: markPOAsReceived,
+    mutationFn: async (id) => {
+      const response = await api.patch(`/purchase-orders/${id}/receive`);
+      return response.po || response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['materials'] }); // Inventory stock update reflect karne ke liye
     },
   });
 }

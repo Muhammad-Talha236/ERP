@@ -1,16 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchPOPaymentHistory } from '@/mocks/handlers/purchaseOrder.mock';
+import { api } from '@/services/api';
 
 /**
  * usePOPaymentHistory — fetches all payment/advance transactions
- * for one specific purchase order.
+ * for one specific purchase order from the real backend.
  *
  * @param {string} poId
  */
 export function usePOPaymentHistory(poId) {
   return useQuery({
     queryKey: ['purchaseOrders', poId, 'payments'],
-    queryFn: () => fetchPOPaymentHistory(poId),
+    queryFn: async () => {
+      const response = await api.get(`/purchase-orders/${poId}/payments`);
+      return response.history || response.data || response;
+    },
     enabled: Boolean(poId),
   });
 }

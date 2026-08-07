@@ -1,160 +1,107 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import PropTypes from 'prop-types';
+
+import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
-import { useCreateUsageEntry } from '../hooks/useCreateUsageEntry';
-import { employeesMockData } from '@/mocks/data/employees.mock';
-import { materialsMockData } from '@/mocks/data/materials.mock';
+import { useCreateDailyUsage } from '../hooks/useDailyUsage';
+import { useMaterials } from '@/features/materials/hooks/useMaterials';
 
-/**
- * usageEntrySchema — validates the "assign consumable" form.
- * Quantity must be greater than zero per
- * docs/04_Database_Design_Part2.md Section 19 Validation Rules.
- */
-const usageEntrySchema = z.object({
-  employeeId: z.string().min(1, 'Select an employee'),
-  materialId: z.string().min(1, 'Select a material'),
-  usageDate: z.string().min(1, 'Date is required'),
-  quantityUsed: z.coerce.number().positive('Quantity must be greater than 0'),
-  wastageQuantity: z.coerce.number().min(0, 'Wastage must be 0 or greater'),
-  remarks: z.string().optional(),
-});
-
-const defaultValues = {
-  employeeId: '',
-  materialId: '',
-  usageDate: '',
-  quantityUsed: 0,
-  wastageQuantity: 0,
-  remarks: '',
-};
-
-/**
- * UsageEntryFormModal — form for assigning/recording material
- * consumption by an employee.
- *
- * @param {Object} props
- * @param {boolean} props.open
- * @param {(open: boolean) => void} props.onOpenChange
- */
 export function UsageEntryFormModal({ open, onOpenChange }) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(usageEntrySchema),
-    defaultValues,
-  });
+  const [materialId, setMaterialId] = useState('');
+  const [quantityUsed, setQuantityUsed] = useState('');
+  const [usageDate, setUsageDate] = useState(new Date().toISOString().split('T')[0]);
+  const [remarks, setRemarks] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const { mutate: createEntry, isPending } = useCreateUsageEntry();
+  const { data: materials = [] } = useMaterials();
+  const { mutate: createUsage, isPending } = useCreateDailyUsage();
 
-  const onSubmit = (formData) => {
-    const employee = employeesMockData.find((e) => e.id === formData.employeeId);
-    const material = materialsMockData.find((m) => m.id === formData.materialId);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
 
-    createEntry(
+    if (!materialId || !quantityUsed || !usageDate) {
+      setErrorMsg('Please fill in all required fields.');
+      return;
+    }
+
+    createUsage(
       {
-        ...formData,
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        materialName: material.materialName,
-        materialCategory: material.category.toLowerCase(),
-        unit: material.unit,
+        materialId,
+        quantityUsed: Number(quantityUsed),
+        usageDate,
+        remarks,
       },
       {
         onSuccess: () => {
-          reset(defaultValues);
           onOpenChange(false);
+          setMaterialId('');
+          setQuantityUsed('');
+          setUsageDate(new Date().toISOString().split('T')[0]);
+          setRemarks('');
+        },
+        onError: (err) => {
+          setErrorMsg(err.message || 'Failed to save record.');
         },
       }
     );
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Record Material Usage"
-      description="Assign consumables used by an employee during production."
-      footer={
-        <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit(onSubmit)} disabled={isPending}>
-            {isPending ? 'Saving...' : 'Record Usage'}
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
-        <Select
-          label="Employee"
-          required
-          error={errors.employeeId?.message}
-          options={[
-            { label: 'Select employee', value: '' },
-            ...employeesMockData.map((e) => ({
-              label: `${e.firstName} ${e.lastName}`,
-              value: e.id,
-            })),
-          ]}
-          {...register('employeeId')}
-        />
+    <Modal open={open} onOpenChange={onOpenChange} title="Record Daily Material Usage" description="Log material consumption and automatically update stock.">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Select
           label="Material"
           required
-          error={errors.materialId?.message}
+          value={materialId}
+          onChange={(e) => setMaterialId(e.target.value)}
           options={[
-            { label: 'Select material', value: '' },
-            ...materialsMockData.map((m) => ({
-              label: `${m.materialName} (${m.currentStock} ${m.unit} available)`,
+            { label: 'Select material...', value: '' },
+            ...materials.map((m) => ({
+              label: `${m.materialName} (Stock: ${m.currentStock} ${m.unit})`,
               value: m.id,
             })),
           ]}
-          {...register('materialId')}
         />
 
         <Input
-          label="Date"
+          label="Usage Date"
           type="date"
           required
-          error={errors.usageDate?.message}
-          {...register('usageDate')}
+          value={usageDate}
+          onChange={(e) => setUsageDate(e.target.value)}
         />
+
         <Input
           label="Quantity Used"
           type="number"
-          step="0.1"
+          min="0.01"
+          step="any"
           required
-          error={errors.quantityUsed?.message}
-          {...register('quantityUsed')}
+          value={quantityUsed}
+          onChange={(e) => setQuantityUsed(e.target.value)}
+          placeholder="e.g. 50"
         />
 
         <Input
-          label="Wastage"
-          type="number"
-          step="0.1"
-          error={errors.wastageQuantity?.message}
-          {...register('wastageQuantity')}
-        />
-        <Input
-          label="Remarks"
+          label="Remarks (Optional)"
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
           placeholder="Optional notes"
-          error={errors.remarks?.message}
-          {...register('remarks')}
         />
+
+        {errorMsg && <p className="text-xs text-danger font-medium">{errorMsg}</p>}
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? 'Saving...' : 'Save Record'}
+          </Button>
+        </div>
       </form>
     </Modal>
   );
 }
-
-UsageEntryFormModal.propTypes = {
-  open: PropTypes.bool.isRequired,
-  onOpenChange: PropTypes.func.isRequired,
-};

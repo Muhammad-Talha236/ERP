@@ -10,7 +10,10 @@ import employeeRoutes from './routes/employeeRoutes.js';
 import workflowRoutes from './routes/workflowRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import productionOrdersRouter from './routes/productionOrders.js'; // ✅ ADDED
-
+import materialRoutes from './routes/materialRoutes.js';
+import wageRoutes from './routes/wageRoutes.js';
+import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js';
+import dailyUsageRoutes from './routes/dailyUsageRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -43,7 +46,10 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/production-orders', productionOrdersRouter); // ✅ ADDED — must be before 404 handler
-
+app.use('/api/materials', materialRoutes);
+app.use('/api/wages', wageRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/daily-usage', dailyUsageRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({

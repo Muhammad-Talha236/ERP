@@ -1,15 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchWages } from '@/mocks/handlers/wage.mock';
+import { api } from '@/services/api';
 
 /**
  * useWages — fetches wage/payroll records, optionally filtered by
- * employee or payment status.
- *
+ * employee or payment status from the real backend.
+ * 
  * @param {{ employeeId?: string, status?: string }} filters
  */
 export function useWages(filters = {}) {
   return useQuery({
     queryKey: ['wages', filters],
-    queryFn: () => fetchWages(filters),
+    queryFn: async () => {
+      const response = await api.get('/wages', { params: filters });
+      return response.wages || response.data || response;
+    },
   });
 }

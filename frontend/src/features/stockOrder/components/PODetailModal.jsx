@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Pencil, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Modal } from '@/components/ui/Modal';
@@ -18,44 +18,32 @@ import { useMarkPOAsReceived } from '../hooks/useMarkPOAsReceived';
 import { useRecordPOPayment } from '../hooks/useRecordPOPayment';
 import { usePOPaymentHistory } from '../hooks/usePOPaymentHistory';
 
-/**
- * editSchema — validates the edit-mode form (supplier + items +
- * expected delivery date).
- */
 const editSchema = z.object({
   supplierName: z.string().min(1, 'Supplier is required'),
   expectedDeliveryDate: z.string().min(1, 'Delivery date is required'),
   items: z
-  .array(
-    z.object({
-      materialName: z.string().min(1, 'Material name is required'),
-      quantity: z.coerce.number().positive('Quantity must be greater than 0'),
-      unitPrice: z.coerce.number().min(0, 'Unit price must be 0 or greater'),
-    })
-  )
-  .min(1, 'At least one item is required'),
+    .array(
+      z.object({
+        materialName: z.string().min(1, 'Material name is required'),
+        quantity: z.coerce.number().positive('Quantity must be greater than 0'),
+        unitPrice: z.coerce.number().min(0, 'Unit price must be 0 or greater'),
+      })
+    )
+    .min(1, 'At least one item is required'),
 });
 
-/**
- * PODetailModal — the single modal that handles VIEWING a purchase
- * order's full details, EDITING it, recording payments/advances,
- * viewing payment history, and marking it as Received.
- *
- * @param {Object} props
- * @param {boolean} props.open
- * @param {(open: boolean) => void} props.onOpenChange
- * @param {PurchaseOrder|null} props.po
- */
 export function PODetailModal({ open, onOpenChange, po }) {
   const [mode, setMode] = useState('view'); // 'view' | 'edit'
   const [paymentError, setPaymentError] = useState(null);
-
   const { mutate: updatePO, isPending: isUpdating } = useUpdatePurchaseOrder();
   const { mutate: markReceived, isPending: isMarkingReceived } = useMarkPOAsReceived();
   const { mutate: recordPayment, isPending: isPaying } = useRecordPOPayment();
   const { data: history, isLoading: isHistoryLoading } = usePOPaymentHistory(po?.id);
 
-  const remaining = po ? po.totalAmount - po.paidAmount : 0;
+  // Safe numerical calculations to prevent null .toLocaleString() crash
+  const totalAmount = Number(po?.totalAmount ?? 0);
+  const paidAmount = Number(po?.paidAmount ?? 0);
+  const remaining = Math.max(0, totalAmount - paidAmount);
 
   const paymentSchema = z.object({
     amount: z.coerce
@@ -69,11 +57,11 @@ export function PODetailModal({ open, onOpenChange, po }) {
   const editForm = useForm({
     resolver: zodResolver(editSchema),
     values: po
-      ? { supplierName: po.supplierName, expectedDeliveryDate: po.expectedDeliveryDate, items: po.items }
+      ? { supplierName: po.supplierName ?? '', expectedDeliveryDate: po.expectedDeliveryDate ?? '', items: po.items ?? [] }
       : undefined,
   });
-  const { fields, append, remove } = useFieldArray({ control: editForm.control, name: 'items' });
 
+  const { fields, append, remove } = useFieldArray({ control: editForm.control, name: 'items' });
   const paymentForm = useForm({
     resolver: zodResolver(paymentSchema),
     values: po ? { amount: remaining, type: 'Payment', remarks: '' } : undefined,
@@ -93,6 +81,12 @@ export function PODetailModal({ open, onOpenChange, po }) {
     );
   };
 
+  const safeFormatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    return isValid(d) ? format(d, 'MMM d, yyyy') : 'N/A';
+  };
+
   const canReceive = po.status !== 'Received' && po.status !== 'Cancelled';
 
   return (
@@ -102,8 +96,8 @@ export function PODetailModal({ open, onOpenChange, po }) {
         onOpenChange(next);
         if (!next) setMode('view');
       }}
-      title={mode === 'edit' ? `Edit ${po.poNumber}` : po.poNumber}
-      description={mode === 'view' ? po.supplierName : 'Update order details.'}
+      title={mode === 'edit' ? `Edit ${po.poNumber}` : (po.poNumber || 'Purchase Order')}
+      description={mode === 'view' ? (po.supplierName || 'Supplier Details') : 'Update order details.'}
       size="lg"
       footer={
         mode === 'edit' ? (
@@ -132,62 +126,55 @@ export function PODetailModal({ open, onOpenChange, po }) {
     >
       {mode === 'view' ? (
         <div className="space-y-6">
-          {/* --- Status + edit trigger --- */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant={getPOStatusVariant(po.status)}>{po.status}</Badge>
-              <Badge variant={getPOPaymentVariant(po.paymentStatus)}>{po.paymentStatus}</Badge>
+              <Badge variant={getPOStatusVariant(po.status)}>{po.status || 'Draft'}</Badge>
+              <Badge variant={getPOPaymentVariant(po.paymentStatus)}>{po.paymentStatus || 'Unpaid'}</Badge>
             </div>
             <Button variant="outline" size="sm" onClick={() => setMode('edit')}>
               <Pencil size={14} /> Edit
             </Button>
           </div>
 
-          {/* --- Order info --- */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-text-secondary">Created</p>
-              <p className="text-text-primary font-medium">{format(new Date(po.createdDate), 'MMM d, yyyy')}</p>
+              <p className="text-text-primary font-medium">{safeFormatDate(po.createdDate)}</p>
             </div>
             <div>
               <p className="text-text-secondary">Expected delivery</p>
-              <p className="text-text-primary font-medium">
-                {format(new Date(po.expectedDeliveryDate), 'MMM d, yyyy')}
-              </p>
+              <p className="text-text-primary font-medium">{safeFormatDate(po.expectedDeliveryDate)}</p>
             </div>
             {po.receivedDate && (
               <div>
                 <p className="text-text-secondary">Received on</p>
-                <p className="text-success font-medium">{format(new Date(po.receivedDate), 'MMM d, yyyy')}</p>
+                <p className="text-success font-medium">{safeFormatDate(po.receivedDate)}</p>
               </div>
             )}
           </div>
 
-          {/* --- Items --- */}
           <div>
             <p className="text-sm font-semibold text-text-primary mb-2">Items</p>
             <div className="rounded-input border border-border divide-y divide-border">
-              {po.items.map((item, i) => (
+              {(po.items ?? []).map((item, i) => (
                 <div key={i} className="flex items-center justify-between px-4 py-2 text-sm">
-                  <span className="text-text-primary">{item.materialName}</span>
+                  <span className="text-text-primary">{item.materialName || 'Material'}</span>
                   <span className="text-text-secondary">
-                    {item.quantity} × ${item.unitPrice.toLocaleString()}
+                    {Number(item.quantity ?? 0)} × ${Number(item.unitPrice ?? 0).toLocaleString()}
                   </span>
                 </div>
               ))}
             </div>
             <p className="text-right text-sm font-semibold text-text-primary mt-2">
-              Total: ${po.totalAmount.toLocaleString()}
+              Total: ${totalAmount.toLocaleString()}
             </p>
           </div>
 
-          {/* --- Payment form --- */}
           <div className="pt-4 border-t border-border">
             <p className="text-sm font-semibold text-text-primary mb-1">Payment</p>
             <p className="text-xs text-text-secondary mb-3">
-              Paid: ${po.paidAmount.toLocaleString()} · Remaining: ${remaining.toLocaleString()}
+              Paid: ${paidAmount.toLocaleString()} · Remaining: ${remaining.toLocaleString()}
             </p>
-
             {remaining <= 0 ? (
               <p className="text-sm text-success font-semibold">This order has been paid in full.</p>
             ) : (
@@ -215,7 +202,6 @@ export function PODetailModal({ open, onOpenChange, po }) {
             {paymentError && <p className="text-xs text-danger mt-2">{paymentError}</p>}
           </div>
 
-          {/* --- Payment history --- */}
           <div>
             <p className="text-sm font-semibold text-text-primary mb-3">Payment History</p>
             {isHistoryLoading ? (
@@ -248,7 +234,6 @@ export function PODetailModal({ open, onOpenChange, po }) {
               {...editForm.register('expectedDeliveryDate')}
             />
           </div>
-
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-text-primary">Items</p>
@@ -261,7 +246,6 @@ export function PODetailModal({ open, onOpenChange, po }) {
                 <Plus size={14} /> Add item
               </Button>
             </div>
-
             <div className="space-y-3">
               {fields.map((field, index) => (
                 <div key={field.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2">

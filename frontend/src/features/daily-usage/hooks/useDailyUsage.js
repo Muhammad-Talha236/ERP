@@ -1,15 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchDailyUsage } from '@/mocks/handlers/dailyUsage.mock';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchDailyUsage, createDailyUsage } from '../api/dailyUsageApi';
 
-/**
- * useDailyUsage — fetches material usage entries, optionally
- * filtered by date range.
- *
- * @param {{ from?: string, to?: string }} filters
- */
-export function useDailyUsage(filters = {}) {
+export function useDailyUsage() {
   return useQuery({
-    queryKey: ['dailyUsage', filters],
-    queryFn: () => fetchDailyUsage(filters),
+    queryKey: ['dailyUsage'],
+    queryFn: fetchDailyUsage,
+  });
+}
+
+export function useCreateDailyUsage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createDailyUsage,
+    onSuccess: () => {
+      // Usage list aur Materials stock dono ko invalidate karein taaki stock update reflect ho
+      queryClient.invalidateQueries({ queryKey: ['dailyUsage'] });
+      queryClient.invalidateQueries({ queryKey: ['materials'] });
+    },
   });
 }

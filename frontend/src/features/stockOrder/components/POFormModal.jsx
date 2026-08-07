@@ -7,13 +7,9 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useCreatePurchaseOrder } from '../hooks/useCreatestockOrder';
 
-/**
- * poSchema — validates the New PO form. Every item must have a
- * material name, positive quantity, and non-negative unit price —
- * matching docs/API/05_API_Documentation_Part4.md validation rules.
- */
 const poSchema = z.object({
   supplierName: z.string().min(1, 'Supplier is required'),
+  expectedDeliveryDate: z.string().min(1, 'Expected delivery date is required'),
   items: z
     .array(
       z.object({
@@ -27,18 +23,10 @@ const poSchema = z.object({
 
 const defaultValues = {
   supplierName: '',
+  expectedDeliveryDate: '',
   items: [{ materialName: '', quantity: 1, unitPrice: 0 }],
 };
 
-/**
- * POFormModal — "New PO" form with a dynamic list of line items.
- * Uses react-hook-form's useFieldArray to let the admin add/remove
- * item rows freely, matching how a real purchase order is built.
- *
- * @param {Object} props
- * @param {boolean} props.open
- * @param {(open: boolean) => void} props.onOpenChange
- */
 export function POFormModal({ open, onOpenChange }) {
   const {
     register,
@@ -51,19 +39,18 @@ export function POFormModal({ open, onOpenChange }) {
     resolver: zodResolver(poSchema),
     defaultValues,
   });
-
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const { mutate: createPO, isPending } = useCreatePurchaseOrder();
 
   const items = watch('items');
-  const estimatedTotal = items.reduce(
+  const estimatedTotal = (items || []).reduce(
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
     0
   );
 
   const onSubmit = (formData) => {
     createPO(
-      { ...formData, createdDate: new Date().toISOString().slice(0, 10) },
+      { ...formData, createdDate: new Date().toISOString().split('T')[0] },
       {
         onSuccess: () => {
           reset(defaultValues);
@@ -92,14 +79,22 @@ export function POFormModal({ open, onOpenChange }) {
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <Input
-          label="Supplier"
-          required
-          placeholder="e.g. IronCore Ltd."
-          error={errors.supplierName?.message}
-          {...register('supplierName')}
-        />
-
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="Supplier"
+            required
+            placeholder="e.g. IronCore Ltd."
+            error={errors.supplierName?.message}
+            {...register('supplierName')}
+          />
+          <Input
+            label="Expected Delivery Date"
+            type="date"
+            required
+            error={errors.expectedDeliveryDate?.message}
+            {...register('expectedDeliveryDate')}
+          />
+        </div>
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-text-primary">Items</p>
@@ -112,7 +107,6 @@ export function POFormModal({ open, onOpenChange }) {
               <Plus size={14} /> Add item
             </Button>
           </div>
-
           <div className="space-y-3">
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-start">
@@ -148,12 +142,10 @@ export function POFormModal({ open, onOpenChange }) {
               </div>
             ))}
           </div>
-
           {errors.items?.message && (
             <p className="text-xs text-danger mt-2">{errors.items.message}</p>
           )}
         </div>
-
         <div className="flex justify-end pt-2 border-t border-border">
           <p className="text-sm text-text-secondary">
             Estimated total:{' '}

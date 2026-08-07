@@ -1,16 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { markWageAsPaid } from '@/mocks/handlers/wage.mock';
+import { api } from '@/services/api';
 
 /**
  * useMarkWageAsPaid — mutation hook for paying ONE specific
- * employee's wage record. This is the per-row action, distinct
- * from useProcessPayroll (bulk action).
+ * employee's wage record from the real backend.
  */
 export function useMarkWageAsPaid() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: markWageAsPaid,
+    mutationFn: async ({ wageId, amount, type, remarks }) => {
+      const response = await api.post(`/wages/${wageId}/payments`, { amount, type, remarks });
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wages'] });
     },

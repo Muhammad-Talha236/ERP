@@ -2,52 +2,53 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LowStockBanner } from './components/LowStockBanner';
 import { MaterialGrid } from './components/MaterialGrid';
-import { MaterialFormModal } from './components/MaterialFormModal';
 import { ErrorState } from '@/components/feedback/ErrorState';
-import { Button } from '@/components/ui/Button';
 import { useMaterials } from './hooks/useMaterials';
+import { POFormModal } from '@/features/stockOrder/components/POFormModal';
 
-/**
- * MaterialsPage — the main "Materials" screen: low-stock banner,
- * inventory header with item count and "Add Material" action, and
- * the responsive material card grid.
- */
 export function MaterialsPage() {
-  const [formModal, setFormModal] = useState({ open: false, material: null });
-
   const { data: materials, isLoading, isError, refetch } = useMaterials();
+  const [isPOFormOpen, setIsPOFormOpen] = useState(false);
+  const [reorderItems, setReorderItems] = useState([]);
 
-  const handleAddClick = () => setFormModal({ open: true, material: null });
-  const handleCardClick = (material) => setFormModal({ open: true, material });
+  // Jab Reorder button par click ho
+  const handleReorderClick = (lowMaterials) => {
+    // Low stock materials ko PO form ke items format mein map kar rahe hain
+    const itemsToOrder = lowMaterials.map((m) => ({
+      materialName: m.materialName,
+      quantity: Math.max(1, (m.minimumStock * 2) - m.currentStock), // Deficit quantity calculate ki hai
+      unitPrice: m.purchasePrice || 0,
+    }));
+    setReorderItems(itemsToOrder);
+    setIsPOFormOpen(true);
+  };
 
   return (
-    <AppLayout title="Materials" subtitle="Inventory & suppliers">
+    <AppLayout title="Materials" subtitle="Inventory & stock tracking">
       <div className="space-y-6">
         {!isLoading && materials && (
-          <LowStockBanner materials={materials} onReorderClick={handleAddClick} />
+          <LowStockBanner materials={materials} onReorderClick={handleReorderClick} />
         )}
-
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-text-primary">Inventory</h2>
             <p className="text-sm text-text-secondary">
-              {materials ? `${materials.length} items tracked` : 'Loading...'}
+              {materials ? `${materials.length} items tracked via Stock Orders` : 'Loading...'}
             </p>
           </div>
-          <Button onClick={handleAddClick}>+ Add Material</Button>
         </div>
-
         {isError ? (
           <ErrorState onRetry={refetch} />
         ) : (
-          <MaterialGrid materials={materials} isLoading={isLoading} onCardClick={handleCardClick} />
+          <MaterialGrid materials={materials} isLoading={isLoading} />
         )}
       </div>
 
-      <MaterialFormModal
-        open={formModal.open}
-        onOpenChange={(open) => setFormModal({ open, material: open ? formModal.material : null })}
-        material={formModal.material}
+      {/* Stock Order / PO Form Modal with pre-filled low stock items */}
+      <POFormModal
+        open={isPOFormOpen}
+        onOpenChange={setIsPOFormOpen}
+        initialItems={reorderItems}
       />
     </AppLayout>
   );

@@ -1,15 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { recordPOPayment } from '@/mocks/handlers/purchaseOrder.mock';
+import { api } from '@/services/api';
 
-/**
- * useRecordPOPayment — mutation hook for recording a payment or
- * advance against a purchase order.
- */
 export function useRecordPOPayment() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ poId, amount, type, remarks }) => recordPOPayment(poId, { amount, type, remarks }),
+    mutationFn: async ({ poId, amount, type, remarks }) => {
+      // Real backend API endpoint call karein
+      const response = await api.post(`/purchase-orders/${poId}/payments`, { amount, type, remarks });
+      return response;
+    },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders', variables.poId, 'payments'] });

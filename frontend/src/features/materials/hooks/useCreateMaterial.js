@@ -1,16 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createMaterial } from '@/mocks/handlers/material.mock';
+import { api } from '@/services/api';
 
-/**
- * useCreateMaterial — mutation hook for the "Add Material" form.
- */
 export function useCreateMaterial() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: createMaterial,
+    mutationFn: async (newMaterial) => {
+      const response = await api.post('/materials', newMaterial);
+      return response.material || response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
     },
   });
-}   
+}
