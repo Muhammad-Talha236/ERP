@@ -43,9 +43,9 @@ export const employeeSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  phone: z
-    .string()
-    .min(1, 'Phone number is required'),
+ phone: z
+  .string()
+  .regex(/^\d{11}$/, 'Phone number must be exactly 11 digits'),
 
   gender: z.enum(['Male', 'Female', 'Other'], {
     errorMap: () => ({ message: 'Select a gender' }),

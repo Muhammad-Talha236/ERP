@@ -138,12 +138,20 @@ export function EmployeeFormModal({ open, onOpenChange, employee }) {
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
-          label="Phone"
-          required
-          error={errors.phone?.message}
-          {...register('phone')}
-        />
+ <Input
+  label="Phone"
+  type="tel"
+  required
+  placeholder="03XXXXXXXXX"
+  maxLength={11}
+  inputMode="numeric"
+  error={errors.phone?.message}
+  {...register('phone', {
+    onChange: (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 11);
+    },
+  })}
+/>
 
         <Select
           label="Gender"
