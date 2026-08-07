@@ -174,14 +174,10 @@ export const PurchaseOrder = {
       await client.query('BEGIN');
 
       const poRes = await client.query('SELECT * FROM purchase_orders WHERE id = $1', [id]);
-      if (poRes.rows.length === 0) {
-        throw new Error('Purchase order not found.');
-      }
+      if (poRes.rows.length === 0) throw new Error('Purchase order not found.');
       const po = poRes.rows[0];
 
-      if (po.status === 'Received') {
-        throw new Error('This purchase order has already been marked as received.');
-      }
+      if (po.status === 'Received') throw new Error('This purchase order has already been marked as received.');
 
       const itemsRes = await client.query('SELECT * FROM purchase_order_items WHERE purchase_order_id = $1', [id]);
       const items = itemsRes.rows;
@@ -197,33 +193,18 @@ export const PurchaseOrder = {
 
         if (matCheck.rows.length > 0) {
           const matId = matCheck.rows[0].id;
-          await client.query(
-            'UPDATE materials SET current_stock = current_stock + $1 WHERE id = $2',
-            [qtyToAdd, matId]
-          );
+          await client.query('UPDATE materials SET current_stock = current_stock + $1 WHERE id = $2', [qtyToAdd, matId]);
         } else {
           await client.query(
             `INSERT INTO materials (tenant_id, material_code, material_name, category, unit, current_stock, minimum_stock, purchase_price, status, supplier_name)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Active', $9)`,
-            [
-              po.tenant_id || 1,
-              `MAT-${Math.floor(1000 + Math.random() * 9000)}`,
-              matName,
-              'General',
-              'Piece',
-              qtyToAdd,
-              10,
-              item.unit_price || 0,
-              po.supplier_name || 'Supplier'
-            ]
+            [po.tenant_id || 1, `MAT-${Math.floor(1000 + Math.random() * 9000)}`, matName, 'General', 'Piece', qtyToAdd, 10, item.unit_price || 0, po.supplier_name || 'Supplier']
           );
         }
       }
 
       const updatedPoRes = await client.query(
-        `UPDATE purchase_orders 
-         SET status = 'Received', received_date = CURRENT_DATE 
-         WHERE id = $1 RETURNING *`,
+        `UPDATE purchase_orders SET status = 'Received', received_date = CURRENT_DATE WHERE id = $1 RETURNING *`,
         [id]
       );
 
@@ -253,32 +234,36 @@ export const PurchaseOrder = {
     }));
   },
 
-  recordPayment: async (poId, paymentData) => {
+  recordPayment: async (poId, tenantId, paymentData) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       const { amount, type, remarks } = paymentData;
       const payAmount = Number(amount);
 
-      const poRes = await client.query('SELECT * FROM purchase_orders WHERE id = $1 FOR UPDATE', [poId]);
+      const poRes = await client.query(
+        'SELECT * FROM purchase_orders WHERE id = $1 AND tenant_id = $2 FOR UPDATE',
+        [poId, tenantId]
+      );
       if (poRes.rows.length === 0) throw new Error('Purchase order not found.');
       const po = poRes.rows[0];
 
       const totalAmount = Number(po.total_amount);
-      const currentPaid = Number(po.paid_amount || 0);
+      
+      // Calculate total already paid from po_payments table directly to ensure 100% accuracy
+      const paidRes = await client.query(
+        'SELECT COALESCE(SUM(amount), 0) AS total_paid FROM po_payments WHERE purchase_order_id = $1',
+        [poId]
+      );
+      const currentPaid = Number(paidRes.rows[0].total_paid);
       const remaining = totalAmount - currentPaid;
 
       if (payAmount > remaining) {
-        throw new Error(`Payment amount cannot exceed remaining balance of $${remaining}.`);
+        throw new Error(`Payment amount cannot exceed remaining balance of $${remaining.toFixed(2)}.`);
       }
 
       const newPaidAmount = currentPaid + payAmount;
       const paymentStatus = derivePaymentStatus(newPaidAmount, totalAmount);
-
-      await client.query(
-        `UPDATE purchase_orders SET paid_amount = $1, payment_status = $2 WHERE id = $3`,
-        [newPaidAmount, paymentStatus, poId]
-      );
 
       const txRes = await client.query(
         `INSERT INTO po_payments (purchase_order_id, payment_type, amount, payment_date, remarks)
@@ -286,9 +271,11 @@ export const PurchaseOrder = {
         [poId, type || 'Payment', payAmount, remarks || null]
       );
 
-      const updatedPoRes = await client.query('SELECT * FROM purchase_orders WHERE id = $1', [poId]);
-      
-      // Separate pool query ki bajaye usi active client se items fetch karein taaki timeout na ho
+      const updatedPoRes = await client.query(
+        `UPDATE purchase_orders SET paid_amount = $1, payment_status = $2 WHERE id = $3 RETURNING *`,
+        [newPaidAmount, paymentStatus, poId]
+      );
+
       const itemsRes = await client.query('SELECT * FROM purchase_order_items WHERE purchase_order_id = $1', [poId]);
       const items = itemsRes.rows.map((r) => ({
         id: r.id,
@@ -299,8 +286,8 @@ export const PurchaseOrder = {
       }));
 
       await client.query('COMMIT');
-      return { 
-        po: mapPORow(updatedPoRes.rows[0], items), 
+      return {
+        po: mapPORow(updatedPoRes.rows[0], items),
         transaction: {
           id: txRes.rows[0].id,
           poId: txRes.rows[0].purchase_order_id,
@@ -308,7 +295,7 @@ export const PurchaseOrder = {
           amount: parseFloat(txRes.rows[0].amount),
           date: txRes.rows[0].payment_date,
           remarks: txRes.rows[0].remarks,
-        } 
+        },
       };
     } catch (err) {
       await client.query('ROLLBACK');
@@ -317,6 +304,7 @@ export const PurchaseOrder = {
       client.release();
     }
   },
+
   updatePayment: async (transactionId, tenantId, updates) => {
     const client = await pool.connect();
     try {
@@ -333,11 +321,15 @@ export const PurchaseOrder = {
       const po = poRes.rows[0];
 
       const totalAmount = parseFloat(po.total_amount);
-      const currentPaid = parseFloat(po.paid_amount || 0);
-      const oldAmount = parseFloat(transaction.amount);
+
+      // Recalculate total paid excluding this transaction, then add new amount
+      const paidRes = await client.query(
+        'SELECT COALESCE(SUM(amount), 0) AS total_paid FROM po_payments WHERE purchase_order_id = $1 AND id != $2',
+        [po.id, transactionId]
+      );
+      const otherPaid = Number(paidRes.rows[0].total_paid);
       const newAmount = Number(updates.amount);
-      const diff = newAmount - oldAmount;
-      const newPaidAmount = currentPaid + diff;
+      const newPaidAmount = otherPaid + newAmount;
 
       if (newPaidAmount < 0) throw new Error('Total paid amount cannot be negative.');
       if (newPaidAmount > totalAmount) throw new Error(`Total paid cannot exceed order total of $${totalAmount}.`);

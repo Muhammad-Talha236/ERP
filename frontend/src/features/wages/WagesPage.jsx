@@ -11,10 +11,15 @@ import { format } from 'date-fns';
 
 export function WagesPage() {
   const { data: wages, isLoading, isError, refetch } = useWages();
-  const [payModal, setPayModal] = useState({ open: false, wage: null });
+  const [payModal, setPayModal] = useState({ open: false, wageId: null });
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
 
   const monthLabel = format(new Date(), 'MMMM');
+
+  // FIX: same as PO — live lookup instead of stale snapshot
+  const liveWage = payModal.wageId
+    ? (wages ?? []).find((w) => w.id === payModal.wageId) ?? null
+    : null;
 
   if (isError) {
     return (
@@ -41,7 +46,7 @@ export function WagesPage() {
             <PayrollTable
               wages={wages}
               isLoading={isLoading}
-              onPayClick={(wage) => setPayModal({ open: true, wage })}
+              onPayClick={(wage) => setPayModal({ open: true, wageId: wage.id })}
             />
           </div>
         </div>
@@ -49,8 +54,8 @@ export function WagesPage() {
 
       <PayWageModal
         open={payModal.open}
-        onOpenChange={(open) => setPayModal({ open, wage: open ? payModal.wage : null })}
-        wage={payModal.wage}
+        onOpenChange={(open) => setPayModal({ open, wageId: open ? payModal.wageId : null })}
+        wage={liveWage}
       />
     </AppLayout>
   );

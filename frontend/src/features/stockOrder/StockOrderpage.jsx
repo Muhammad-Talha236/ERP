@@ -11,9 +11,19 @@ import { usePurchaseOrders } from './hooks/usestockorder';
 
 export function StockOrderpage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [detailModal, setDetailModal] = useState({ open: false, po: null });
+  const [detailModal, setDetailModal] = useState({ open: false, poId: null });
 
   const { data: purchaseOrders, isLoading, isError, refetch } = usePurchaseOrders();
+
+  // FIX: modal ko hamesha LIVE po do, list se by-id lookup karke —
+  // ek stale snapshot state nahi rakhte. Jaise hi payment ke baad
+  // ['purchaseOrders'] query invalidate/refetch hoti hai, ye
+  // automatically naya paidAmount/status utha lega, aur PODetailModal
+  // ka useForm({ values: ... }) khud-ba-khud Amount field ko naye
+  // "remaining" par reset kar dega.
+  const liveDetailPo = detailModal.poId
+    ? (purchaseOrders ?? []).find((p) => p.id === detailModal.poId) ?? null
+    : null;
 
   if (isError) {
     return (
@@ -39,7 +49,7 @@ export function StockOrderpage() {
         <POTable
           purchaseOrders={purchaseOrders}
           isLoading={isLoading}
-          onViewClick={(po) => setDetailModal({ open: true, po })}
+          onViewClick={(po) => setDetailModal({ open: true, poId: po.id })}
         />
       </div>
 
@@ -47,8 +57,8 @@ export function StockOrderpage() {
 
       <PODetailModal
         open={detailModal.open}
-        onOpenChange={(open) => setDetailModal({ open, po: open ? detailModal.po : null })}
-        po={detailModal.po}
+        onOpenChange={(open) => setDetailModal({ open, poId: open ? detailModal.poId : null })}
+        po={liveDetailPo}
       />
     </AppLayout>
   );

@@ -40,7 +40,7 @@ export function PODetailModal({ open, onOpenChange, po }) {
   const { mutate: recordPayment, isPending: isPaying } = useRecordPOPayment();
   const { data: history, isLoading: isHistoryLoading } = usePOPaymentHistory(po?.id);
 
-  // Safe numerical calculations to prevent null .toLocaleString() crash
+  // Safe numerical calculations
   const totalAmount = Number(po?.totalAmount ?? 0);
   const paidAmount = Number(po?.paidAmount ?? 0);
   const remaining = Math.max(0, totalAmount - paidAmount);
@@ -62,6 +62,7 @@ export function PODetailModal({ open, onOpenChange, po }) {
   });
 
   const { fields, append, remove } = useFieldArray({ control: editForm.control, name: 'items' });
+  
   const paymentForm = useForm({
     resolver: zodResolver(paymentSchema),
     values: po ? { amount: remaining, type: 'Payment', remarks: '' } : undefined,
@@ -77,7 +78,12 @@ export function PODetailModal({ open, onOpenChange, po }) {
     setPaymentError(null);
     recordPayment(
       { poId: po.id, ...formData },
-      { onError: (err) => setPaymentError(err.message || 'Payment failed.') }
+      { 
+        onSuccess: () => {
+          paymentForm.reset({ amount: Math.max(0, totalAmount - (paidAmount + Number(formData.amount))), type: 'Payment', remarks: '' });
+        },
+        onError: (err) => setPaymentError(err.message || 'Payment failed.') 
+      }
     );
   };
 

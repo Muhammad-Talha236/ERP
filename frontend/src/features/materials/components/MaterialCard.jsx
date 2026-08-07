@@ -49,10 +49,7 @@ export function MaterialCard({ material, onClick }) {
         />
       </div>
 
-      <div className="flex items-center justify-between text-xs text-text-secondary mb-4">
-        <span>Min: {material.minimumStock.toLocaleString()}</span>
-        <span>Updated {formatDistanceToNow(new Date(material.lastUpdated), { addSuffix: true })}</span>
-      </div>
+     
 
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <span className="text-xs text-text-secondary">{material.supplierName}</span>
