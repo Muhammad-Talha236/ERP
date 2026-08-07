@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchProductionOrders } from '@/mocks/handlers/productionOrder.mock';
+import { api } from '@/services/api';
 
 /**
  * useProductionOrders — fetches customer production orders,
@@ -11,6 +11,9 @@ import { fetchProductionOrders } from '@/mocks/handlers/productionOrder.mock';
 export function useProductionOrders(filters = {}) {
   return useQuery({
     queryKey: ['productionOrders', filters],
-    queryFn: () => fetchProductionOrders(filters),
+    queryFn: async () => {
+      const response = await api.get('/production-orders', { params: filters });
+      return response.data ?? response;
+    },
   });
 }

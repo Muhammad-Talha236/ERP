@@ -1,13 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 
-export function useCreateProductionOrder() {
+export function useDeleteProductionOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newOrderData) => {
-      // Yahan bilkul saaf sirf '/production-orders' hona chahiye
-      const response = await api.post('/production-orders', newOrderData);
+    mutationFn: async (id) => {
+      const response = await api.delete(`/production-orders/${id}`);
       return response;
     },
     onSuccess: () => {

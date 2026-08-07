@@ -16,12 +16,6 @@ import { useOrderMovements } from '../hooks/useOrderMovements';
 
 const TABS = ['Bundles', 'Movement Log'];
 
-/**
- * OrderWorkflowCard — "Edit Structure" and "+ New Bundle" now live
- * together in the tab header row, both top-aligned next to the tabs.
- * "+ New Bundle" toggle state is owned here and passed down into
- * BundleList so BundleList no longer renders its own button.
- */
 export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
   const [activeTab, setActiveTab] = useState('Bundles');
   const [isEditStructureOpen, setIsEditStructureOpen] = useState(false);
@@ -111,10 +105,12 @@ export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
           {activeTab === 'Bundles' && (
             isBundlesLoading || isStepsLoading ? <LoadingSkeleton rows={3} /> : (
               <>
-                <BundleList
+              
+                 <BundleList
                   bundles={bundles ?? []}
                   steps={steps ?? []}
                   orderId={order.id}
+                  orderQuantity={order.quantity}
                   isCreatingBundle={isCreatingBundle}
                   onCreateBundleDone={() => setIsCreatingBundle(false)}
                   onStartCreatingBundle={() => setIsCreatingBundle(true)}
@@ -137,6 +133,6 @@ export function OrderWorkflowCard({ order, isExpanded, onToggleExpand }) {
 
 OrderWorkflowCard.propTypes = {
   order: PropTypes.object.isRequired,
-  isExpanded:PropTypes.bool.isRequired,
+  isExpanded: PropTypes.bool.isRequired,
   onToggleExpand: PropTypes.func.isRequired,
 };

@@ -9,6 +9,8 @@ import tenantRoutes from './routes/tenantRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import workflowRoutes from './routes/workflowRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
+import productionOrdersRouter from './routes/productionOrders.js'; // ✅ ADDED
+
 dotenv.config();
 
 const app = express();
@@ -40,6 +42,8 @@ app.use('/api/tenants', tenantRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/production-orders', productionOrdersRouter); // ✅ ADDED — must be before 404 handler
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -49,7 +53,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler
+// 404 handler — ALWAYS LAST
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
@@ -63,4 +67,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-export default app;
+export default app

@@ -1,5 +1,9 @@
 import express from 'express';
 import {
+  getWorkflowTemplates,
+  createWorkflowTemplate,
+  updateWorkflowTemplate, // ✅ naya
+  deleteWorkflowTemplate, // ✅ naya
   getOrderStages,
   saveOrderStages,
   getWorkflowBundles,
@@ -20,6 +24,10 @@ const router = express.Router();
 
 router.use(protect);
 
+// --- WORKFLOW TEMPLATES ROUTE ---
+router.get('/', getWorkflowTemplates);
+router.post('/', createWorkflowTemplate);
+
 router.get('/stages/:poNumber', getOrderStages);
 router.post('/stages/:poNumber', saveOrderStages);
 
@@ -38,5 +46,9 @@ router.get('/bundles/:bundleId/assignments', getBundleAssignments);
 router.post('/bundles/:bundleId/assign', assignEmployeeToBundle);
 
 router.get('/logs/:poNumber', getMovementLogs);
+
+// --- TEMPLATE EDIT/DELETE (dynamic, isliye sabse neeche) ---
+router.put('/:id', updateWorkflowTemplate);   // ✅ naya
+router.delete('/:id', deleteWorkflowTemplate); // ✅ naya
 
 export default router;

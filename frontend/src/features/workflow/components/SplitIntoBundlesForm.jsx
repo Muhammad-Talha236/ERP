@@ -9,10 +9,17 @@ import { useSplitIntoBundles } from '../hooks/useSplitIntoBundles';
 import { useCreateBundle } from '../hooks/useCreateBundle';
 
 /**
- * SplitIntoBundlesForm — Carves a new bundle's quantity out of an EXISTING bundle.
+ * SplitIntoBundlesForm — Carves a new bundle's quantity out of an EXISTING bundle,
+ * or creates the first bundle for an order (capped at the order's total quantity).
+ *
+ * `orderId` here must be the PO NUMBER (e.g. "PO-6365"), not the numeric
+ * database id — the backend looks up production_orders by po_number.
  */
-export function SplitIntoBundlesForm({ orderId, bundles, firstStageName, onDone }) {
+export function SplitIntoBundlesForm({ orderId, orderQuantity, bundles, firstStageName, onDone }) {
   const isInitialBundle = bundles.length === 0;
+
+  const allocatedQuantity = bundles.reduce((sum, b) => sum + Number(b.quantity || 0), 0);
+  const remainingQuantity = Math.max(0, Number(orderQuantity || 0) - allocatedQuantity);
 
   const {
     register,
@@ -33,18 +40,23 @@ export function SplitIntoBundlesForm({ orderId, bundles, firstStageName, onDone 
 
   const sourceBundleId = watch('sourceBundleId');
   const sourceBundle = bundles.find((b) => b.id === sourceBundleId);
-  
-  // Parse numeric quantity safely
+
   const rawQty = watch('quantity');
   const quantity = Number(rawQty) || 0;
 
-  // Validation checks for UI state
   const isQuantityValid = isInitialBundle
-    ? quantity > 0
+    ? quantity > 0 && quantity <= remainingQuantity
     : sourceBundle && quantity > 0 && quantity < sourceBundle.quantity;
 
   const onSubmit = (formData) => {
     if (isInitialBundle) {
+      if (Number(formData.quantity) > remainingQuantity) {
+        setError('quantity', {
+          message: `Quantity cannot exceed the order total (${orderQuantity}). Max available: ${remainingQuantity}.`,
+        });
+        return;
+      }
+
       createInitialBundle(
         {
           poNumber: orderId,
@@ -64,10 +76,10 @@ export function SplitIntoBundlesForm({ orderId, bundles, firstStageName, onDone 
     }
 
     splitBundle(
-      { 
-        sourceBundleId: formData.sourceBundleId, 
-        newQty: Number(formData.quantity), 
-        poNumber: orderId, 
+      {
+        sourceBundleId: formData.sourceBundleId,
+        newQty: Number(formData.quantity),
+        poNumber: orderId,
       },
       {
         onSuccess: () => {
@@ -103,25 +115,32 @@ export function SplitIntoBundlesForm({ orderId, bundles, firstStageName, onDone 
           />
         )}
 
-        <Input 
+        <Input
           label={isInitialBundle ? 'Bundle quantity' : 'New bundle qty'}
-          type="number" 
+          type="number"
           min="1"
-          max={isInitialBundle ? undefined : sourceBundle ? sourceBundle.quantity - 1 : undefined}
-          error={errors.quantity?.message} 
-          {...register('quantity', { valueAsNumber: true, min: 1 })} 
+          max={isInitialBundle ? remainingQuantity : sourceBundle ? sourceBundle.quantity - 1 : undefined}
+          error={errors.quantity?.message}
+          {...register('quantity', { valueAsNumber: true, min: 1 })}
         />
         <Button type="submit" disabled={isPending || !isQuantityValid}>
           {isPending ? 'Creating...' : 'Create'}
         </Button>
       </form>
 
+      {isInitialBundle && quantity > 0 && (
+        <p className={`text-xs mt-2 ${quantity > remainingQuantity ? 'text-red-500 font-medium' : 'text-text-secondary'}`}>
+          {quantity > remainingQuantity
+            ? `Quantity cannot exceed the order total (${orderQuantity}). Max available: ${remainingQuantity}.`
+            : `${remainingQuantity - quantity} of ${orderQuantity} will remain after this bundle.`}
+        </p>
+      )}
+
       {!isInitialBundle && sourceBundle && quantity > 0 && (
         <p className={`text-xs mt-2 ${quantity >= sourceBundle.quantity ? 'text-red-500 font-medium' : 'text-text-secondary'}`}>
-          {quantity >= sourceBundle.quantity 
+          {quantity >= sourceBundle.quantity
             ? `Quantity must be less than current bundle total (${sourceBundle.quantity}).`
-            : `${sourceBundle.bundleNumber || sourceBundle.id} will become ${sourceBundle.quantity - quantity}, new bundle will be ${quantity}.`
-          }
+            : `${sourceBundle.bundleNumber || sourceBundle.id} will become ${sourceBundle.quantity - quantity}, new bundle will be ${quantity}.`}
         </p>
       )}
     </div>
@@ -130,6 +149,7 @@ export function SplitIntoBundlesForm({ orderId, bundles, firstStageName, onDone 
 
 SplitIntoBundlesForm.propTypes = {
   orderId: PropTypes.string.isRequired,
+  orderQuantity: PropTypes.number.isRequired,
   bundles: PropTypes.array.isRequired,
   firstStageName: PropTypes.string.isRequired,
   onDone: PropTypes.func.isRequired,

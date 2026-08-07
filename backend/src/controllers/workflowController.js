@@ -1,5 +1,182 @@
 import { pool as db } from '../config/database.js';
 
+// --- WORKFLOW TEMPLATES (GET & CREATE) ---
+export const getWorkflowTemplates = async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        wt.id, 
+        wt.template_name AS "templateName",
+        json_agg(
+          json_build_object(
+            'stageName', wts.stage_name,
+            'stageExpense', wts.expense,
+            'wagePerPerson', wts.wage_per_person,
+            'headcount', wts.headcount,
+            'position', wts.position
+          ) ORDER BY wts.position ASC
+        ) AS stages
+      FROM workflow_templates wt
+      LEFT JOIN workflow_template_stages wts ON wt.id = wts.template_id
+      GROUP BY wt.id
+      ORDER BY wt.id DESC;
+    `);
+
+    res.status(200).json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error('Error in getWorkflowTemplates:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const createWorkflowTemplate = async (req, res) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const { templateName, stages } = req.body;
+
+    if (!templateName || !templateName.trim()) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Template name is required' });
+    }
+
+    const existing = await client.query(
+      'SELECT id FROM workflow_templates WHERE LOWER(template_name) = LOWER($1)',
+      [templateName.trim()]
+    );
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        success: false,
+        message: `A template named "${templateName.trim()}" already exists. Please choose a different name.`,
+      });
+    }
+
+    const templateQuery = `
+      INSERT INTO workflow_templates (template_name)
+      VALUES ($1)
+      RETURNING id, template_name AS "templateName";
+    `;
+    const templateResult = await client.query(templateQuery, [templateName.trim()]);
+    const newTemplate = templateResult.rows[0];
+
+    if (Array.isArray(stages) && stages.length > 0) {
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const stageName = stage.name || stage.stageName || stage.stage_name;
+        const expense = stage.expense || stage.expense === 0 ? stage.expense : 0;
+        const wage = stage.wage_per_person ?? stage.wagePerPerson ?? stage.wage ?? 0;
+        const headcount = stage.headcount || 1;
+
+        await client.query(
+          `INSERT INTO workflow_template_stages (template_id, stage_name, expense, wage_per_person, headcount, position)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [newTemplate.id, stageName, expense, wage, headcount, i + 1]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({
+      success: true,
+      message: 'Workflow template created successfully',
+      data: newTemplate,
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error in createWorkflowTemplate:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+};
+
+export const updateWorkflowTemplate = async (req, res) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const { id } = req.params;
+    const { templateName, stages } = req.body;
+
+    if (!templateName || !templateName.trim()) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Template name is required' });
+    }
+
+    const existing = await client.query(
+      'SELECT id FROM workflow_templates WHERE LOWER(template_name) = LOWER($1) AND id != $2',
+      [templateName.trim(), id]
+    );
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        success: false,
+        message: `A template named "${templateName.trim()}" already exists. Please choose a different name.`,
+      });
+    }
+
+    const updateResult = await client.query(
+      `UPDATE workflow_templates SET template_name = $1 WHERE id = $2 RETURNING id, template_name AS "templateName"`,
+      [templateName.trim(), id]
+    );
+
+    if (updateResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Template not found' });
+    }
+
+    await client.query('DELETE FROM workflow_template_stages WHERE template_id = $1', [id]);
+
+    if (Array.isArray(stages) && stages.length > 0) {
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const stageName = stage.name || stage.stageName || stage.stage_name;
+        const expense = stage.expense || stage.expense === 0 ? stage.expense : 0;
+        const wage = stage.wage_per_person ?? stage.wagePerPerson ?? stage.wage ?? 0;
+        const headcount = stage.headcount || 1;
+
+        await client.query(
+          `INSERT INTO workflow_template_stages (template_id, stage_name, expense, wage_per_person, headcount, position)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [id, stageName, expense, wage, headcount, i + 1]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(200).json({
+      success: true,
+      message: 'Workflow template updated successfully',
+      data: updateResult.rows[0],
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error in updateWorkflowTemplate:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+};
+
+export const deleteWorkflowTemplate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query('DELETE FROM workflow_templates WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Template not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Workflow template deleted successfully' });
+  } catch (error) {
+    console.error('Error in deleteWorkflowTemplate:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // 1. GET /api/workflows/stages/:poNumber
 export const getOrderStages = async (req, res) => {
   try {
@@ -44,12 +221,11 @@ const syncOrderWorkflowStagesMirror = async (poNumber, stages) => {
   }
 };
 
-export const saveOrderStages = async (req, res) => {
+// ✅ Reusable — used by both saveOrderStages (Workflow page) and
+// productionOrders.js (PO creation), so both go through one code path.
+export const saveOrderStagesForOrder = async (poNumber, stages) => {
+  await db.query('BEGIN');
   try {
-    const { poNumber } = req.params;
-    const { stages } = req.body;
-
-    await db.query('BEGIN');
     await db.query('DELETE FROM order_workflow_steps WHERE po_number = $1', [poNumber]);
 
     for (let i = 0; i < stages.length; i++) {
@@ -68,10 +244,19 @@ export const saveOrderStages = async (req, res) => {
 
     await syncOrderWorkflowStagesMirror(poNumber, stages);
     await db.query('COMMIT');
-
-    res.json({ success: true, message: 'Workflow stages updated successfully' });
   } catch (error) {
     await db.query('ROLLBACK');
+    throw error;
+  }
+};
+
+export const saveOrderStages = async (req, res) => {
+  try {
+    const { poNumber } = req.params;
+    const { stages } = req.body;
+    await saveOrderStagesForOrder(poNumber, stages);
+    res.json({ success: true, message: 'Workflow stages updated successfully' });
+  } catch (error) {
     console.error('Error in saveOrderStages:', error);
     res.status(500).json({ success: false, message: error.message });
   }
@@ -145,12 +330,40 @@ export const getWorkflowBundles = async (req, res) => {
 export const createBundle = async (req, res) => {
   try {
     const { poNumber, quantity, stageName } = req.body;
+    const qtyNum = Number(quantity);
+
+    if (!qtyNum || qtyNum <= 0) {
+      return res.status(400).json({ success: false, message: 'Quantity must be greater than 0' });
+    }
+
+    const orderRes = await db.query(
+      'SELECT quantity FROM production_orders WHERE po_number = $1',
+      [poNumber]
+    );
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Production order not found' });
+    }
+    const orderQuantity = Number(orderRes.rows[0].quantity);
+
+    const existingRes = await db.query(
+      `SELECT COALESCE(SUM(quantity), 0) AS total FROM workflow_bundles WHERE po_number = $1`,
+      [poNumber]
+    );
+    const alreadyAllocated = Number(existingRes.rows[0].total);
+
+    if (alreadyAllocated + qtyNum > orderQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Bundle quantity cannot exceed the order's total quantity (${orderQuantity}). Available: ${orderQuantity - alreadyAllocated}.`,
+      });
+    }
+
     const bundleCode = `${poNumber}-${Date.now().toString().slice(-4)}`;
 
     const result = await db.query(
       `INSERT INTO workflow_bundles (bundle_code, po_number, quantity, current_stage, status)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [bundleCode, poNumber, quantity, stageName || 'Material Allocation', 'Not Started']
+      [bundleCode, poNumber, qtyNum, stageName || 'Material Allocation', 'Not Started']
     );
 
     res.status(201).json({ success: true, data: mapBundleRow(result.rows[0]) });
@@ -160,7 +373,7 @@ export const createBundle = async (req, res) => {
   }
 };
 
-// 5. POST /api/workflows/bundles/split (Fixed not-null constraint issue)
+// 5. POST /api/workflows/bundles/split
 export const splitBundle = async (req, res) => {
   const { sourceBundleId, newQty, poNumber } = req.body;
 

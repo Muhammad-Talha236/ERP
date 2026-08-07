@@ -13,7 +13,7 @@ import { useUpdateBundle } from '../hooks/useUpdateBundle';
 import { useDeleteBundle } from '../hooks/useDeleteBundle';
 import { useEmployees } from '../hooks/useEmployees';
 
-export function BundleList({ bundles, steps, orderId, isCreatingBundle, onCreateBundleDone, onStartCreatingBundle }) {
+export function BundleList({ bundles, steps, orderId, orderQuantity, poNumber, isCreatingBundle, onCreateBundleDone, onStartCreatingBundle }) {
   const [loggingBundleId, setLoggingBundleId] = useState(null);
   const [editingBundleId, setEditingBundleId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -39,7 +39,8 @@ export function BundleList({ bundles, steps, orderId, isCreatingBundle, onCreate
     <div className="space-y-3">
       {isCreatingBundle && (
         <SplitIntoBundlesForm
-          orderId={orderId}
+          orderId={poNumber}
+          orderQuantity={orderQuantity}
           bundles={bundles}
           firstStageName={firstStage?.stageName ?? 'Stage 1'}
           onDone={onCreateBundleDone}
@@ -105,8 +106,8 @@ export function BundleList({ bundles, steps, orderId, isCreatingBundle, onCreate
 
 function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggleEdit, onDeleteClick, onAssignClick }) {
   const queryClient = useQueryClient();
-  
-  const { data: employees = [] } = useEmployees();
+
+  const { data: employees = [], isLoading: isLoadingEmployees, isError: isEmployeesError, error: employeesError } = useEmployees();
 
   const [employeeId, setEmployeeId] = useState(bundle.assignedEmployeeId ?? '');
   const [quantityReceived, setQuantityReceived] = useState(bundle.quantity);
@@ -124,19 +125,16 @@ function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggl
   const parsedEditQty = Number(editQuantity) || 0;
   const isEditValid = parsedEditQty > 0;
 
-  // Check agar bundle pehle se logged hai
   const storageKey = `bundle_logged_${bundle.id}`;
   const isLocallyLogged = localStorage.getItem(storageKey) === 'true';
   const isAlreadyLogged = bundle.status === 'Completed' || bundle.isLogged === true || isLocallyLogged;
 
-  // Validation calculations
   const recNum = Number(quantityReceived) || 0;
   const outNum = Number(quantityOutput) || 0;
   const wastNum = Number(quantityWastage) || 0;
 
   const isTotalValid = (outNum + wastNum) === recNum;
-  
-  // Flexible matching (handles string vs number ID type differences)
+
   const matchedEmployee = employees.find((e) => String(e.id) === String(employeeId));
   const isEmployeeSelected = Boolean(matchedEmployee);
 
@@ -155,14 +153,14 @@ function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggl
       quantityOutput: outNum,
       quantityWastage: wastNum,
       remarks,
-    }, { 
+    }, {
       onSuccess: () => {
         localStorage.setItem(storageKey, 'true');
-        
+
         queryClient.invalidateQueries({ queryKey: ['bundles', orderId] });
         queryClient.invalidateQueries({ queryKey: ['movement-logs', orderId] });
-        onToggleLog(); 
-      } 
+        onToggleLog();
+      }
     });
   };
 
@@ -197,14 +195,14 @@ function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggl
           </Button>
           <button onClick={onToggleEdit} className="text-text-secondary hover:text-primary transition-colors" aria-label="Edit bundle">
             <Pencil size={14} />
-          </button> 
+          </button>
           <button onClick={onDeleteClick} className="text-text-secondary hover:text-danger transition-colors" aria-label="Delete bundle">
             <Trash2 size={14} />
           </button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onToggleLog}
           >
             {isAlreadyLogged ? 'Already Logged' : (isLogging ? 'Cancel' : 'Log')}
@@ -215,15 +213,15 @@ function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggl
       {isEditing && (
         <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-end gap-3">
-            <Input 
-              label="Quantity" 
-              type="number" 
+            <Input
+              label="Quantity"
+              type="number"
               min="1"
-              value={editQuantity} 
+              value={editQuantity}
               onChange={(e) => {
                 const val = e.target.value;
                 setEditQuantity(val === '' ? '' : Math.max(1, Number(val)));
-              }} 
+              }}
             />
             <Button size="sm" onClick={handleSaveEdit} disabled={isUpdating || !isEditValid}>
               <Check size={14} /> {isUpdating ? 'Saving...' : 'Save'}
@@ -238,55 +236,68 @@ function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggl
 
       {isLogging && (
         <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
-          <Input 
-            label="Received" 
-            type="number" 
+          <Input
+            label="Received"
+            type="number"
             min="0"
-            value={quantityReceived} 
+            value={quantityReceived}
             onChange={(e) => {
               const val = e.target.value;
               setQuantityReceived(val === '' ? '' : Math.max(0, Number(val)));
-            }} 
+            }}
             disabled={isAlreadyLogged}
           />
-          <Input 
-            label="Output" 
-            type="number" 
+          <Input
+            label="Output"
+            type="number"
             min="0"
-            value={quantityOutput} 
+            value={quantityOutput}
             onChange={(e) => {
               const val = e.target.value;
               setQuantityOutput(val === '' ? '' : Math.max(0, Number(val)));
-            }} 
+            }}
             disabled={isAlreadyLogged}
           />
-          <Input 
-            label="Wastage" 
-            type="number" 
+          <Input
+            label="Wastage"
+            type="number"
             min="0"
-            value={quantityWastage} 
+            value={quantityWastage}
             onChange={(e) => {
               const val = e.target.value;
               setQuantityWastage(val === '' ? '' : Math.max(0, Number(val)));
-            }} 
+            }}
             disabled={isAlreadyLogged}
           />
-          
+
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-text-secondary">Logged by Employee</label>
-            <select
-              className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-text-primary"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              disabled={isAlreadyLogged}
-            >
-              <option value="">Select employee from database...</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName} ({emp.id})
-                </option>
-              ))}
-            </select>
+
+            {isLoadingEmployees ? (
+              <p className="text-xs text-text-secondary">Loading employees...</p>
+            ) : isEmployeesError ? (
+              <p className="text-xs text-red-600">
+                Could not load employees: {employeesError?.message || 'Unknown error'}
+              </p>
+            ) : (
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-text-primary"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                disabled={isAlreadyLogged}
+              >
+                <option value="">Select employee from database...</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.firstName} {emp.lastName} ({emp.id})
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {!isLoadingEmployees && !isEmployeesError && employees.length === 0 && (
+              <p className="text-xs text-amber-600">No employees found in the database.</p>
+            )}
           </div>
 
           <div className="col-span-2">
@@ -306,9 +317,9 @@ function BundleRow({ bundle, orderId, isLogging, onToggleLog, isEditing, onToggl
           )}
 
           <div className="col-span-2 flex justify-end">
-            <Button 
-              size="sm" 
-              onClick={handleLog} 
+            <Button
+              size="sm"
+              onClick={handleLog}
               disabled={isLoggingPending || !isLogFormValid}
             >
               {isAlreadyLogged ? 'Already Logged' : (isLoggingPending ? 'Saving...' : 'Save Movement')}
@@ -324,6 +335,8 @@ BundleList.propTypes = {
   bundles: PropTypes.array.isRequired,
   steps: PropTypes.array,
   orderId: PropTypes.string.isRequired,
+  orderQuantity: PropTypes.number.isRequired,
+  poNumber: PropTypes.string.isRequired,
   isCreatingBundle: PropTypes.bool,
   onCreateBundleDone: PropTypes.func.isRequired,
   onStartCreatingBundle: PropTypes.func.isRequired,

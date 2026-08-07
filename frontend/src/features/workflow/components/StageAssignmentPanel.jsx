@@ -17,24 +17,27 @@ import { useEmployees } from '../hooks/useEmployees';
  * StageAssignmentPanel — shows every employee assigned to ONE stage,
  * each with their own "mark my work done" action.
  */
-export function StageAssignmentPanel({ 
-  step, 
-  onStepCompleted, 
-  scope = 'order', 
-  bundleId = null, 
-  canMarkDone = true 
+export function StageAssignmentPanel({
+  step,
+  onStepCompleted,
+  scope = 'order',
+  bundleId = null,
+  canMarkDone = true
 }) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
-  // Fetch live active employees from backend safely
-  const { data: rawEmployees = [], isLoading: isLoadingEmployees } = useEmployees();
+  const {
+    data: rawEmployees = [],
+    isLoading: isLoadingEmployees,
+    isError: isEmployeesError,
+    error: employeesError,
+    refetch: refetchEmployees,
+  } = useEmployees();
 
-  // Ensure employees is always a valid array to prevent .filter crashes
-  const employees = Array.isArray(rawEmployees) 
-    ? rawEmployees 
+  const employees = Array.isArray(rawEmployees)
+    ? rawEmployees
     : (rawEmployees.employees || rawEmployees.data || []);
 
-  // Unified queries for order vs bundle scope
   const orderAssignmentsQuery = useStageAssignments(scope === 'order' ? step?.id : null);
   const bundleAssignmentsQuery = useBundleStageAssignments(scope === 'bundle' ? bundleId : null);
 
@@ -48,31 +51,26 @@ export function StageAssignmentPanel({
   const isLoadingAssignments = scope === 'order' ? orderAssignmentsQuery.isLoading : bundleAssignmentsQuery.isLoading;
   const isAdding = scope === 'order' ? isAddingOrder : isAddingBundle;
 
-  // Filter assignments based on step scope with safe string matching and fallback
   const rawAssignments = scope === 'order'
     ? orderAssignmentsQuery.data
     : (bundleAssignmentsQuery.data ?? []).filter((a) => {
         const assignmentStepId = String(a.stepId || a.step_id || '').trim();
         const currentStepId = String(step.id || step.step_id || '').trim();
-        
+
         const assignmentStageName = String(a.stageName || a.stage_name || '').trim().toLowerCase();
         const currentStageName = String(step.stageName || step.stage_name || step.name || '').trim().toLowerCase();
 
-        // Agar database/backend mein step_id ya stage_name set nahi tha, toh fallback ke tor par sab dikhayein
         if (!assignmentStepId && !assignmentStageName) return true;
 
-        // Match either by step ID or by stage name robustly
-        return (assignmentStepId && currentStepId && assignmentStepId === currentStepId) || 
+        return (assignmentStepId && currentStepId && assignmentStepId === currentStepId) ||
                (assignmentStageName && currentStageName && assignmentStageName === currentStageName);
       });
 
   const assignments = rawAssignments || [];
 
-  // Add person with duplication validation
   const handleAddPerson = () => {
     if (!selectedEmployeeId) return;
 
-    // Prevent assigning the same employee twice to the same stage
     const alreadyAssigned = assignments.some(
       (a) => String(a.employeeId || a.employee_id) === String(selectedEmployeeId)
     );
@@ -83,7 +81,7 @@ export function StageAssignmentPanel({
     }
 
     const employee = employees.find((e) => String(e.id) === String(selectedEmployeeId));
-    const employeeName = employee 
+    const employeeName = employee
       ? `${employee.firstName || employee.first_name || ''} ${employee.lastName || employee.last_name || ''}`.trim()
       : 'Assigned Worker';
 
@@ -94,10 +92,10 @@ export function StageAssignmentPanel({
     const headcountVal = Number(step.headcount || 1);
 
     if (scope === 'order') {
-      addOrderAssignment({ 
-        stepId: step.id, 
-        employeeId: selectedEmployeeId, 
-        employeeName 
+      addOrderAssignment({
+        stepId: step.id,
+        employeeId: selectedEmployeeId,
+        employeeName
       }, {
         onSuccess: () => setSelectedEmployeeId('')
       });
@@ -119,7 +117,6 @@ export function StageAssignmentPanel({
   };
 
   const handleMarkDone = (assignmentId) => {
-    console.log('[StageAssignmentPanel] handleMarkDone called for', { assignmentId, scope, bundleId });
     const finishUp = () => {
       const updated = assignments.map((a) => (a.id === assignmentId ? { ...a, isDone: true } : a));
       const nowAllDone = updated.length > 0 && updated.every((a) => a.isDone);
@@ -139,19 +136,15 @@ export function StageAssignmentPanel({
         },
       });
     } else {
-      console.log('[StageAssignmentPanel] calling completeBundleAssignment', { assignmentId, wage, bundleId });
       completeBundleAssignment(
         { assignmentId, wagePerPerson: wage, bundleId },
         {
           onSuccess: () => {
-            console.log('[StageAssignmentPanel] completeBundleAssignment onSuccess for', assignmentId);
-            window.alert('Mark done successfully');
             finishUp();
             queryClient.invalidateQueries({ queryKey: ['bundle-assignments', bundleId] });
             queryClient.invalidateQueries({ queryKey: ['bundle-assignments'] });
           },
           onError: (error) => {
-            console.error('[StageAssignmentPanel] completeBundleAssignment failed', error);
             window.alert(`Failed to complete assignment: ${error.message || error}`);
           },
         }
@@ -163,7 +156,23 @@ export function StageAssignmentPanel({
     return <p className="text-sm text-text-secondary py-2">Loading stage details...</p>;
   }
 
-  // Filter out employees who are already assigned to present clean dropdown list
+  if (isEmployeesError) {
+    return (
+      <div className="rounded-input border border-red-200 bg-red-50 px-3 py-2">
+        <p className="text-sm text-red-600">
+          Could not load employees: {employeesError?.message || 'Unknown error'}
+        </p>
+        <button
+          type="button"
+          onClick={() => refetchEmployees()}
+          className="text-xs text-brand hover:text-brand-hover font-medium mt-1"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   const availableEmployees = employees.filter(
     (emp) => !assignments.some((a) => String(a.employeeId || a.employee_id) === String(emp.id))
   );
@@ -200,6 +209,12 @@ export function StageAssignmentPanel({
         );
       })}
 
+      {availableEmployees.length === 0 && employees.length === 0 && (
+        <p className="text-xs text-amber-600">
+          No employees found in the database. Add staff in the Employees module first.
+        </p>
+      )}
+
       <div className="flex items-center gap-2 pt-2">
         <Select
           value={selectedEmployeeId}
@@ -213,10 +228,10 @@ export function StageAssignmentPanel({
             })),
           ]}
         />
-        
-        <Button 
-          size="sm" 
-          onClick={handleAddPerson} 
+
+        <Button
+          size="sm"
+          onClick={handleAddPerson}
           disabled={!selectedEmployeeId || isAdding}
         >
           {isAdding ? 'Adding...' : 'Add'}

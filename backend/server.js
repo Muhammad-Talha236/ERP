@@ -11,6 +11,6 @@ await connectDB();
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📚 Health: http://localhost:${PORT}/api/health`);
-  console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
+  console.log(`📦 Production Orders: http://localhost:${PORT}/api/production-orders`);
+  console.log(`📋 Workflows: http://localhost:${PORT}/api/workflows`);
 });

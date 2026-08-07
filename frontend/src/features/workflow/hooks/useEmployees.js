@@ -1,4 +1,3 @@
-// frontend/src/features/workflow/hooks/useEmployees.js
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 
@@ -7,13 +6,15 @@ export function useEmployees() {
     queryKey: ['employees'],
     queryFn: async () => {
       const response = await api.get('/employees');
-      console.log("Employees API Response:", response);
 
-      // Safe check: Ensure we always return an array
-      if (Array.isArray(response)) {
-        return response;
-      }
-      return response.employees || response.data || [];
+      if (Array.isArray(response)) return response;
+      if (Array.isArray(response?.data)) return response.data;
+      if (Array.isArray(response?.employees)) return response.employees;
+      if (Array.isArray(response?.data?.data)) return response.data.data;
+
+      console.error('Unexpected /employees response shape:', response);
+      throw new Error('Employee data format was not recognized — check the backend response.');
     },
+    retry: 1,
   });
 }

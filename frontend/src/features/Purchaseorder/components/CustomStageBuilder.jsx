@@ -1,25 +1,14 @@
 import { Plus, Trash2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 
 /**
  * CustomStageBuilder — lets the user build a one-off workflow for
  * THIS order only, without picking an existing template.
- *
- * Reordering is POSITION-based, not drag-and-drop: each stage has a
- * numeric "Position" field the user types directly. On submit,
- * stages are sorted by this number — so moving a stage means simply
- * changing its position number, not dragging it.
- *
- * @param {Object} props
- * @param {Array} props.fields - from useFieldArray
- * @param {Function} props.register
- * @param {Function} props.append
- * @param {Function} props.remove
- * @param {Object} props.errors
  */
-export function CustomStageBuilder({ fields, register, append, remove, errors }) {
+export function CustomStageBuilder({ fields, register, append, remove, errors, employees = [] }) {
   const handleAddStage = () => {
     append({
       position: fields.length + 1,
@@ -27,6 +16,7 @@ export function CustomStageBuilder({ fields, register, append, remove, errors })
       headcount: 1,
       wagePerPerson: 0,
       stageExpense: 0,
+      assignedEmployeeId: '',
     });
   };
 
@@ -45,6 +35,7 @@ export function CustomStageBuilder({ fields, register, append, remove, errors })
             <div className="grid grid-cols-[70px_1fr_auto] gap-2 items-start">
               <Input
                 type="number"
+                min="1"
                 label="Position"
                 placeholder="1"
                 error={errors?.customStages?.[index]?.position?.message}
@@ -67,15 +58,33 @@ export function CustomStageBuilder({ fields, register, append, remove, errors })
               </button>
             </div>
 
+            {/* Employee Assignment Dropdown with Fallbacks */}
+            <div className="mt-2">
+              <Select
+                label="Assigned Employee"
+                error={errors?.customStages?.[index]?.assignedEmployeeId?.message}
+                options={[
+                  { label: 'Select Employee (Optional)', value: '' },
+                  ...employees.map((emp) => ({ 
+                    label: emp.name || emp.fullName || emp.firstName || emp.username || 'Unnamed Employee', 
+                    value: emp.id || emp._id 
+                  })),
+                ]}
+                {...register(`customStages.${index}.assignedEmployeeId`)}
+              />
+            </div>
+
             <div className="grid grid-cols-3 gap-2 mt-2">
               <Input
                 type="number"
+                min="0"
                 label="Headcount"
                 error={errors?.customStages?.[index]?.headcount?.message}
                 {...register(`customStages.${index}.headcount`)}
               />
               <Input
                 type="number"
+                min="0"
                 step="0.01"
                 label="Wage per Person"
                 error={errors?.customStages?.[index]?.wagePerPerson?.message}
@@ -83,6 +92,7 @@ export function CustomStageBuilder({ fields, register, append, remove, errors })
               />
               <Input
                 type="number"
+                min="0"
                 step="0.01"
                 label="Stage Expense"
                 error={errors?.customStages?.[index]?.stageExpense?.message}
@@ -111,4 +121,5 @@ CustomStageBuilder.propTypes = {
   append: PropTypes.func.isRequired,
   remove: PropTypes.func.isRequired,
   errors: PropTypes.object,
+  employees: PropTypes.array,
 };
