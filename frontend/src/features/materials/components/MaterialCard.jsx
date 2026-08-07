@@ -53,13 +53,7 @@ export function MaterialCard({ material, onClick }) {
 
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <span className="text-xs text-text-secondary">{material.supplierName}</span>
-        <button
-          type="button"
-          onClick={onClick}
-          className="text-xs font-semibold text-primary hover:text-primary-hover transition-colors"
-        >
-          Edit
-        </button>
+       
       </div>
     </div>
   );

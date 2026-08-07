@@ -45,11 +45,17 @@ export const PurchaseOrder = {
     try {
       await client.query('BEGIN');
 
+      // Database se check karein ke ab tak kitne purchase orders ban chuke hain
+      const countRes = await client.query(
+        "SELECT COUNT(*) AS total FROM purchase_orders WHERE tenant_id = $1",
+        [tenantId]
+      );
+      
+      const nextIdNum = parseInt(countRes.rows[0].total) + 1;
+      const poNumber = `PUR-${nextIdNum}`; // Yeh PUR-1, PUR-2, PUR-3 is tarah banayega
+
       const { supplierName, expectedDeliveryDate, items } = data;
       const tIdStr = String(tenantId && typeof tenantId === 'object' ? (tenantId.id || 1) : (tenantId || 1));
-
-      const randomNum = Math.floor(1000 + Math.random() * 9000);
-      const poNumber = `PUR-${Date.now().toString().slice(-4)}${randomNum}`;
 
       let totalAmount = 0;
       if (items && Array.isArray(items)) {
@@ -76,7 +82,7 @@ export const PurchaseOrder = {
 
       await client.query('COMMIT');
       const itemsList = await fetchItems(newPo.id);
-      return mapPORow(newPo, itemsList);
+      return mapPORow(newPo, itemsList, 0);
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -84,7 +90,6 @@ export const PurchaseOrder = {
       client.release();
     }
   },
-
   findByTenant: async (tenantId, filters = {}) => {
     const { status, search } = filters;
     let query = 'SELECT * FROM purchase_orders WHERE tenant_id = $1';

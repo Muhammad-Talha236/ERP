@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
-import { Activity } from 'lucide-react';
+import { Activity, Pencil } from 'lucide-react';
 
-export function RecentEntriesTable({ entries = [], isLoading }) {
+export function RecentEntriesTable({ entries = [], isLoading, onEditClick }) {
   if (isLoading) {
     return <LoadingSkeleton rows={5} />;
   }
@@ -31,16 +31,17 @@ export function RecentEntriesTable({ entries = [], isLoading }) {
 
   const groupedData = useMemo(() => {
     const map = {};
-    entries.forEach((entry) => {
+    entries.dateGroups || entries.forEach((entry) => {
       const date = entry.usageDate || entry.usage_date || new Date().toISOString().split('T')[0];
       if (!map[date]) {
-        map[date] = { date, total: 0 };
+        map[date] = { date, total: 0, entries: [] };
         materialKeys.forEach((k) => { map[date][k] = 0; });
       }
       const matName = entry.materialName || entry.material_name || entry.category || 'Material';
       const qty = Number(entry.quantityUsed || entry.quantity_used || 0);
       map[date][matName] = (map[date][matName] || 0) + qty;
       map[date].total += qty;
+      map[date].entries.push(entry);
     });
     return Object.values(map).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [entries, materialKeys]);
@@ -60,7 +61,7 @@ export function RecentEntriesTable({ entries = [], isLoading }) {
                 </th>
               ))}
               <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wide py-3">TOTAL</th>
-              <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wide py-3">RECORDED BY</th>
+              <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wide py-3">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -75,7 +76,16 @@ export function RecentEntriesTable({ entries = [], isLoading }) {
                   </td>
                 ))}
                 <td className="py-4 text-sm font-semibold text-text-primary">{row.total}</td>
-                <td className="py-4 text-sm text-text-secondary text-right">System / Admin</td>
+                <td className="py-4 text-sm text-text-secondary text-right">
+                  <button
+                    type="button"
+                    onClick={() => onEditClick && onEditClick(row)}
+                    className="text-text-secondary hover:text-primary transition-colors p-1"
+                    title="Edit entry"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -88,4 +98,5 @@ export function RecentEntriesTable({ entries = [], isLoading }) {
 RecentEntriesTable.propTypes = {
   entries: PropTypes.array,
   isLoading: PropTypes.bool,
+  onEditClick: PropTypes.func,
 };

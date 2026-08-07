@@ -74,40 +74,34 @@ export const DailyUsage = {
     }
   },
 
-  update: async (id, tenantId, data) => {
+ update: async (id, tenantId, data) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       const { quantityUsed, remarks, usageDate } = data;
       const newQty = parseFloat(quantityUsed);
-
       const oldRes = await client.query('SELECT * FROM daily_usage WHERE id = $1', [id]);
       if (oldRes.rows.length === 0) throw new Error('Daily usage record not found.');
       const oldRecord = oldRes.rows[0];
       const oldQty = parseFloat(oldRecord.quantity_used);
       const matId = oldRecord.material_id;
-
       const diff = newQty - oldQty;
-
       if (diff > 0) {
         const matRes = await client.query('SELECT current_stock FROM materials WHERE id = $1 FOR UPDATE', [matId]);
         if (matRes.rows.length > 0 && parseFloat(matRes.rows[0].current_stock) < diff) {
           throw new Error('Insufficient stock for this update.');
         }
       }
-
       const updateRes = await client.query(
         `UPDATE daily_usage 
-         SET quantity_used = $1, remarks = COALESCE($2, remarks), usage_date = COALESCE($3, usage_date), updated_at = CURRENT_TIMESTAMP
+          SET quantity_used = $1, remarks = COALESCE($2, remarks), usage_date = COALESCE($3, usage_date)
          WHERE id = $4 RETURNING *`,
         [newQty, remarks, usageDate, id]
       );
-
       await client.query(
-        `UPDATE materials SET current_stock = current_stock - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        `UPDATE materials SET current_stock = current_stock - $1 WHERE id = $2`,
         [diff, matId]
       );
-
       await client.query('COMMIT');
       return updateRes.rows[0];
     } catch (err) {
