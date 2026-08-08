@@ -26,10 +26,10 @@ export const createEmployee = async (req, res) => {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
 
-    // Check if employee code already exists for this tenant
+    // App-level check (fast path, good UX)
     const existing = await Employee.findByTenant(tenantId, { search: employeeCode });
-    if (existing.some(e => e.employeeCode === employeeCode)) {
-      return res.status(400).json({ message: `Employee code ${employeeCode} already exists` });
+    if (existing.some(e => e.employeeCode.toLowerCase() === employeeCode.toLowerCase())) {
+      return res.status(400).json({ message: `Employee code "${employeeCode}" already exists in your organization.` });
     }
 
     const employee = await Employee.create(req.body, tenantId);
@@ -40,6 +40,19 @@ export const createEmployee = async (req, res) => {
       employee,
     });
   } catch (error) {
+    // Safety net: catch the raw Postgres unique-violation too, in case
+    // the app-level check above races or misses (e.g. concurrent
+    // requests, or the constraint is still global on your DB).
+    if (error.code === '23505') {
+      let message = 'A record with this value already exists.';
+      if (error.constraint?.includes('employee_code')) {
+        message = `Employee code "${req.body.employeeCode}" already exists.`;
+      } else if (error.constraint?.includes('email')) {
+        message = `An employee with email "${req.body.email}" already exists.`;
+      }
+      return res.status(400).json({ message });
+    }
+
     console.error('Create employee error:', error);
     res.status(500).json({ message: 'Server error' });
   }

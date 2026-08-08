@@ -84,12 +84,7 @@ export function UsageEntryFormModal({ open, onOpenChange }) {
           placeholder="e.g. 50"
         />
 
-        <Input
-          label="Remarks (Optional)"
-          value={remarks}
-          onChange={(e) => setRemarks(e.target.value)}
-          placeholder="Optional notes"
-        />
+  
 
         {errorMsg && <p className="text-xs text-danger font-medium">{errorMsg}</p>}
 
