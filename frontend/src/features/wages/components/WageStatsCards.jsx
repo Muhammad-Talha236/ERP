@@ -1,24 +1,16 @@
 import { Wallet, Clock, CheckCircle2 } from 'lucide-react';
 import { StatCard } from '@/components/ui/StatCard';
-import { format } from 'date-fns';
+import PropTypes from 'prop-types';
 
 /**
- * WageStatsCards — payroll summary row.
- *
- * "Pending payments" now sums the REMAINING balance across all
- * records (netAmount - amountPaid), not just records with a
- * Pending status — this correctly includes partially-paid records'
- * unpaid portion too.
- *
- * @param {Object} props
- * @param {WageRecord[]} props.wages
+ * WageStatsCards — payroll summary row for the CURRENTLY VIEWED
+ * month (wages passed in are already scoped to that month/year by
+ * the parent), not hardcoded to "today".
  */
-export function WageStatsCards({ wages }) {
+export function WageStatsCards({ wages, monthLabel }) {
   const totalPayroll = wages.reduce((sum, w) => sum + w.netAmount, 0);
   const pendingPayments = wages.reduce((sum, w) => sum + (w.netAmount - w.amountPaid), 0);
   const paidThisMonth = wages.reduce((sum, w) => sum + w.amountPaid, 0);
-
-  const monthLabel = format(new Date(), 'MMM');
 
   return (
     <div className="flex flex-wrap gap-4">
@@ -35,7 +27,7 @@ export function WageStatsCards({ wages }) {
         accent="warning"
       />
       <StatCard
-        label="Paid this month"
+        label={`Paid (${monthLabel})`}
         value={`$${paidThisMonth.toLocaleString()}`}
         icon={CheckCircle2}
         accent="success"
@@ -43,3 +35,8 @@ export function WageStatsCards({ wages }) {
     </div>
   );
 }
+
+WageStatsCards.propTypes = {
+  wages: PropTypes.array.isRequired,
+  monthLabel: PropTypes.string,
+};

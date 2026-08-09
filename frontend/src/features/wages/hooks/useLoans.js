@@ -18,7 +18,11 @@ export function useCreateLoan() {
       const response = await api.post('/loans', data);
       return response.loan || response;
     },
-    onSuccess: () => {
+    onSuccess: (newLoan) => {
+      queryClient.setQueriesData({ queryKey: ['loans'] }, (old) => {
+        if (!old) return old;
+        return [newLoan, ...old];
+      });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
     },
   });

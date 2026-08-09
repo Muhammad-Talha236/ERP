@@ -16,7 +16,7 @@ import { LoanFormModal } from './LoanFormModal';
  * Pass `employeeId` to scope to one employee (used in the Employee
  * profile); omit it to show everyone's (used on the Wages page).
  */
-export function AdvancesLoansPanel({ employeeId }) {
+export function AdvancesLoansPanel({ employeeId ,showAddButtons = true}) {
   const [isAdvanceOpen, setIsAdvanceOpen] = useState(false);
   const [isLoanOpen, setIsLoanOpen] = useState(false);
 
@@ -32,9 +32,11 @@ export function AdvancesLoansPanel({ employeeId }) {
             <HandCoins size={18} className="text-primary" />
             <h3 className="text-sm font-semibold text-text-primary">Advances</h3>
           </div>
-          <Button size="sm" variant="outline" onClick={() => setIsAdvanceOpen(true)}>
-            + New Advance
-          </Button>
+           {showAddButtons && (
+            <Button size="sm" variant="outline" onClick={() => setIsAdvanceOpen(true)}>
+              + New Advance
+            </Button>
+          )}
         </div>
 
         {isAdvancesLoading ? (
@@ -71,9 +73,11 @@ export function AdvancesLoansPanel({ employeeId }) {
             <Landmark size={18} className="text-primary" />
             <h3 className="text-sm font-semibold text-text-primary">Loans</h3>
           </div>
-          <Button size="sm" variant="outline" onClick={() => setIsLoanOpen(true)}>
-            + New Loan
-          </Button>
+           {showAddButtons && (
+            <Button size="sm" variant="outline" onClick={() => setIsLoanOpen(true)}>
+              + New Loan
+            </Button>
+          )}
         </div>
 
         {isLoansLoading ? (
@@ -110,4 +114,5 @@ export function AdvancesLoansPanel({ employeeId }) {
 
 AdvancesLoansPanel.propTypes = {
   employeeId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+   showAddButtons: PropTypes.bool,
 };

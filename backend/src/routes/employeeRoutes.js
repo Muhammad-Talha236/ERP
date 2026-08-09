@@ -5,6 +5,7 @@ import {
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
+  getEmployeeWorkAssignments,
 } from '../controllers/employeeController.js';
 import { protect, restrictToAdmin } from '../middleware/auth.js';
 
@@ -18,5 +19,5 @@ router.get('/', getEmployees);
 router.get('/:id', getEmployeeById);
 router.put('/:id', updateEmployee);
 router.delete('/:id', deleteEmployee);
-
+router.get('/:id/work', getEmployeeWorkAssignments);
 export default router;

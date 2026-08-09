@@ -23,13 +23,13 @@ export const generatePayroll = async (req, res) => {
     const tenantId = req.user.tenant_id;
     if (!tenantId) return res.status(400).json({ message: 'Tenant ID required' });
 
-    const { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes } = req.body;
+    const { employeeId, payPeriodStart, payPeriodEnd, basicPay, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes } = req.body;
     if (!employeeId || !payPeriodStart || !payPeriodEnd) {
       return res.status(400).json({ message: 'employeeId, payPeriodStart and payPeriodEnd are required' });
     }
 
     const wage = await Wage.generatePayroll(tenantId, {
-      employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes,
+      employeeId, payPeriodStart, payPeriodEnd, basicPay, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes,
     });
 
     res.status(201).json({ success: true, message: 'Payroll calculated successfully', wage });

@@ -3,17 +3,20 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { EmployeeRecordHeader } from './components/EmployeeRecordHeader';
 import { EmployeeInfoCard } from './components/EmployeeInfoCard';
 import { EmployeeWorkHistoryList } from './components/EmployeeWorkHistoryList';
+import { EmployeeWorkList } from './components/EmployeeWorkList';
 import { EmployeePayrollSummary } from './components/EmployeePayrollSummary';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { useEmployee } from './hooks/useEmployee';
 import { useEmployeeWorkHistory } from './hooks/useEmployeeWorkHistory';
+import { useEmployeeWorkAssignments } from './hooks/useEmployeeWorkAssignments';
 
 export function EmployeeRecordPage() {
   const { employeeId } = useParams({ strict: false });
 
   const { data: employee, isLoading, isError, refetch } = useEmployee(employeeId);
   const { data: workHistory, isLoading: isHistoryLoading } = useEmployeeWorkHistory(employeeId);
+  const { data: workAssignments, isLoading: isWorkLoading } = useEmployeeWorkAssignments(employeeId);
 
   if (isLoading) {
     return (
@@ -44,8 +47,10 @@ export function EmployeeRecordPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <EmployeeInfoCard employee={employee} />
-          <EmployeeWorkHistoryList entries={workHistory} isLoading={isHistoryLoading} />
+           <EmployeeWorkList work={workAssignments} isLoading={isWorkLoading} />
         </div>
+
+       
 
         <EmployeePayrollSummary employee={employee} />
       </div>

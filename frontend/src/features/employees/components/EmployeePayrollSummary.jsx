@@ -61,7 +61,7 @@ export function EmployeePayrollSummary({ employee }) {
         )}
       </div>
 
-      <AdvancesLoansPanel employeeId={employee.id} />
+      <AdvancesLoansPanel employeeId={employee.id} showAddButtons={false} />
     </div>
   );
 }

@@ -185,7 +185,7 @@ export const Wage = {
    * employee/period and its status has moved past 'Draft'/'Calculated',
    * generation is refused (recompute Draft/Calculated ones freely).
    */
-  generatePayroll: async (tenantId, { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes }) => {
+  generatePayroll: async (tenantId, { employeeId, payPeriodStart, payPeriodEnd, basicPay, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes }) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -206,7 +206,12 @@ export const Wage = {
         throw new Error(`Payroll for this period is already ${existing.status.toLowerCase()} — it cannot be regenerated.`);
       }
 
-      // --- Attendance-based working data ---
+      // --- Attendance is fetched for INFORMATIONAL display only ---
+      // Present/Absent/Leave counts and overtime hours are shown to the
+      // admin so THEY can decide the payment amount. They are no longer
+      // used to auto-calculate basic pay or an "absence deduction" —
+      // that decision belongs entirely to the admin via the "Basic Pay"
+      // field on the Generate Payroll form.
       const attRes = await client.query(
         `SELECT status, overtime_hours FROM attendance
          WHERE employee_id = $1 AND tenant_id = $2
@@ -218,27 +223,15 @@ export const Wage = {
       const presentDays = records.filter((r) => r.status === 'Present' || r.status === 'Late' || r.status === 'Half Day').length;
       const absentDays = records.filter((r) => r.status === 'Absent').length;
       const leaveDays = records.filter((r) => r.status === 'Leave').length;
-      const lateDays = records.filter((r) => r.status === 'Late').length;
       const overtimeHours = records.reduce((sum, r) => sum + parseFloat(r.overtime_hours || 0), 0);
-      const workingDays = records.length || (presentDays + absentDays + leaveDays);
+      const workingDays = records.length;
 
       // --- Earnings ---
-      const baseSalary = parseFloat(employee.base_salary || 0);
-      const salaryType = employee.salary_type;
+      // Basic Pay now comes directly from the admin (the form pre-fills
+      // it with the employee's base salary, but the admin can adjust it
+      // up or down after seeing the present/absent/leave counts above).
+      const basicPayAmt = Number(basicPay || 0);
 
-      let basicPay = 0;
-      if (salaryType === 'Monthly') {
-        basicPay = baseSalary;
-      } else if (salaryType === 'Daily') {
-        basicPay = baseSalary * presentDays;
-      } else {
-        basicPay = 0; // Piece Rate handled elsewhere
-      }
-
-      const dailyRate = workingDays > 0 ? baseSalary / workingDays : 0;
-
-      // Overtime: hours from attendance x admin-set $/hour rate. Simple,
-      // predictable, and fully under the admin's control.
       const overtimeRateAmt = Number(overtimeRate || 0);
       const overtimeAmount = Number((overtimeHours * overtimeRateAmt).toFixed(2));
 
@@ -246,11 +239,13 @@ export const Wage = {
       const bonusesAmt = Number(bonuses || 0);
       const otherEarningsAmt = Number(otherEarnings || 0);
 
-      const grossAmount = Number((basicPay + overtimeAmount + allowancesAmt + bonusesAmt + otherEarningsAmt).toFixed(2));
+      const grossAmount = Number((basicPayAmt + overtimeAmount + allowancesAmt + bonusesAmt + otherEarningsAmt).toFixed(2));
 
       // --- Deductions ---
-      const absenceDeduction = salaryType === 'Monthly' ? Number((dailyRate * absentDays).toFixed(2)) : 0;
-
+      // No automatic "absence deduction" anymore — the admin already
+      // accounted for attendance when they set Basic Pay. Advances and
+      // loans still auto-deduct since those are fixed obligations, not
+      // attendance-based guesses.
       const pendingAdvances = await Advance.findPendingByEmployee(employeeId, tenantId, client);
       let advanceDeduction = 0;
       const deductionEntries = [];
@@ -277,9 +272,7 @@ export const Wage = {
         }
       });
 
-      if (absenceDeduction > 0) {
-        deductionEntries.push({ type: 'Absence', referenceId: null, amount: absenceDeduction, reason: `${absentDays} absent day(s)` });
-      }
+      const absenceDeduction = 0; // removed: no longer auto-calculated from attendance
 
       const otherDeductionsAmt = Number(otherDeductions || 0);
       if (otherDeductionsAmt > 0) {
@@ -307,7 +300,7 @@ export const Wage = {
           [grossAmount, overtimeAmount, allowancesAmt, bonusesAmt, otherEarningsAmt,
            totalDeductions, advanceDeduction, loanDeduction, absenceDeduction, otherDeductionsAmt,
            netAmount, workingDays, presentDays, absentDays, leaveDays,
-           overtimeHours, lateDays, notes, existing.id]
+           overtimeHours, 0, notes, existing.id]
         );
         wageRow = updateRes.rows[0];
       } else {
@@ -328,7 +321,7 @@ export const Wage = {
            grossAmount, overtimeAmount, allowancesAmt, bonusesAmt, otherEarningsAmt,
            totalDeductions, advanceDeduction, loanDeduction, absenceDeduction, otherDeductionsAmt,
            netAmount,
-           workingDays, presentDays, absentDays, leaveDays, overtimeHours, lateDays, notes || null]
+           workingDays, presentDays, absentDays, leaveDays, overtimeHours, 0, notes || null]
         );
         wageRow = insertRes.rows[0];
       }

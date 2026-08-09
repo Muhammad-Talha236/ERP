@@ -116,7 +116,8 @@ export const updateEmployee = async (req, res) => {
     console.error('Update employee error:', error);
     res.status(500).json({ message: 'Server error' });
   }
-};export const deleteEmployee = async (req, res) => {
+};
+export const deleteEmployee = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
     const employeeId = req.params.id;
@@ -145,3 +146,69 @@ export const updateEmployee = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getEmployeeWorkAssignments = async (req, res) => {
+  try {
+    const { id } = req.params;
+ 
+    const bundleQuery = `
+      SELECT
+        bsa.id,
+        bsa.bundle_id AS "bundleId",
+        wb.po_number AS "poNumber",
+        po.product_name AS "productName",
+        bsa.stage_name AS "stageName",
+        bsa.status,
+        bsa.headcount,
+        bsa.wage_per_person AS "wagePerPerson",
+        bsa.expense,
+        bsa.is_done AS "isDone",
+        bsa.completed_at AS "completedAt",
+        bsa.updated_at AS "updatedAt"
+      FROM bundle_stage_assignments bsa
+      LEFT JOIN workflow_bundles wb ON wb.id::text = bsa.bundle_id
+      LEFT JOIN production_orders po ON po.po_number = wb.po_number
+      WHERE bsa.employee_id = $1
+    `;
+ 
+    const stepQuery = `
+      SELECT
+        ows.id,
+        NULL AS "bundleId",
+        ows.po_number AS "poNumber",
+        po.product_name AS "productName",
+        ows.stage_name AS "stageName",
+        'Assigned' AS status,
+        ows.headcount,
+        ows.wage_per_person AS "wagePerPerson",
+        ows.expense,
+        NULL AS "isDone",
+        NULL AS "completedAt",
+        NULL AS "updatedAt"
+      FROM order_workflow_steps ows
+      LEFT JOIN production_orders po ON po.po_number = ows.po_number
+      WHERE ows.assigned_employee_id = $1 OR $1 = ANY(ows.assigned_employee_ids)
+    `;
+ 
+    const numericId = Number(id);
+ 
+    const [bundleRes, stepRes] = await Promise.all([
+      pool.query(bundleQuery, [String(id)]),
+      Number.isNaN(numericId)
+        ? Promise.resolve({ rows: [] })
+        : pool.query(stepQuery, [numericId]),
+    ]);
+ 
+    const combined = [...bundleRes.rows, ...stepRes.rows].sort((a, b) => {
+      const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+ 
+    res.json({ success: true, work: combined });
+  } catch (error) {
+    console.error('Get employee work assignments error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+ 

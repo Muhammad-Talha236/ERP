@@ -18,7 +18,11 @@ export function useCreateAdvance() {
       const response = await api.post('/advances', data);
       return response.advance || response;
     },
-    onSuccess: () => {
+    onSuccess: (newAdvance) => {
+      queryClient.setQueriesData({ queryKey: ['advances'] }, (old) => {
+        if (!old) return old;
+        return [newAdvance, ...old];
+      });
       queryClient.invalidateQueries({ queryKey: ['advances'] });
     },
   });

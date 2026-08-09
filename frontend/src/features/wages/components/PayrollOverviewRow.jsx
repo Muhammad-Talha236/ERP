@@ -1,17 +1,24 @@
 import PropTypes from 'prop-types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { getWageStatusVariant, getPayrollStatusVariant } from '../utils/wageStatusVariant';
 import { useApproveWage } from '../hooks/useApproveWage';
 
 /**
- * PayrollOverviewRow — one employee's row on the payroll page.
- * Always shows base salary. Actions change based on where this
- * employee's payroll stands for the period:
- *  - No wage yet          -> Generate
- *  - Draft / Calculated   -> Edit (recompute) + Approve (if Calculated)
- *  - Approved / Paid      -> Pay (also lets you view/edit past payments)
+ * resolveDisplayStatus — collapses payroll workflow status +
+ * payment status into a SINGLE label/variant, so the table never
+ * shows two stacked badges for one row.
  */
+function resolveDisplayStatus(row) {
+  if (!row.wageId) return { label: 'Not Generated', variant: 'neutral' };
+  if (row.status === 'Paid') return { label: 'Paid', variant: 'success' };
+  if (row.status === 'Approved' && row.paymentStatus === 'Partial') {
+    return { label: 'Partial', variant: 'info' };
+  }
+  if (row.status === 'Approved') return { label: 'Approved', variant: 'warning' };
+  if (row.status === 'Calculated') return { label: 'Calculated', variant: 'info' };
+  return { label: 'Draft', variant: 'neutral' };
+}
+
 export function PayrollOverviewRow({ row, onPayClick, onEditClick, onGenerateClick }) {
   const { mutate: approve, isPending: isApproving } = useApproveWage();
 
@@ -19,7 +26,9 @@ export function PayrollOverviewRow({ row, onPayClick, onEditClick, onGenerateCli
   const remaining = row.netAmount - row.amountPaid;
   const canApprove = hasWage && row.status === 'Calculated';
   const canEdit = hasWage && (row.status === 'Draft' || row.status === 'Calculated');
-  const canPay = hasWage && (row.status === 'Approved' || row.status === 'Paid');
+  const canPay = hasWage && (row.status === 'Approved' || row.status === 'Paid') && remaining > 0;
+
+  const displayStatus = resolveDisplayStatus(row);
 
   return (
     <tr className="border-b border-border last:border-0">
@@ -38,12 +47,7 @@ export function PayrollOverviewRow({ row, onPayClick, onEditClick, onGenerateCli
         )}
       </td>
       <td className="py-4">
-        <div className="flex flex-col gap-1 items-start">
-          <Badge variant={getPayrollStatusVariant(row.status)}>{hasWage ? row.status : 'Not Generated'}</Badge>
-          {hasWage && (row.status === 'Approved' || row.status === 'Paid') && (
-            <Badge variant={getWageStatusVariant(row.paymentStatus)}>{row.paymentStatus}</Badge>
-          )}
-        </div>
+        <Badge variant={displayStatus.variant}>{displayStatus.label}</Badge>
       </td>
       <td className="py-4 text-right">
         <div className="flex items-center justify-end gap-2">
