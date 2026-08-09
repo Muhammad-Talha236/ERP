@@ -3,11 +3,11 @@ import { Loan } from '../models/loan.js';
 export const createLoan = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
-    const { employeeId, loanAmount, installmentAmount, startDate, durationMonths, reason } = req.body;
-    if (!employeeId || !loanAmount || !installmentAmount || !startDate) {
-      return res.status(400).json({ message: 'employeeId, loanAmount, installmentAmount and startDate are required' });
+    const { employeeId, loanAmount, startDate, durationMonths, reason } = req.body;
+    if (!employeeId || !loanAmount || !startDate) {
+      return res.status(400).json({ message: 'employeeId, loanAmount and startDate are required' });
     }
-    const loan = await Loan.create({ employeeId, loanAmount, installmentAmount, startDate, durationMonths, reason }, tenantId);
+    const loan = await Loan.create({ employeeId, loanAmount, startDate, durationMonths, reason }, tenantId);
     res.status(201).json({ success: true, message: 'Loan recorded successfully', loan });
   } catch (error) {
     console.error('Create loan error:', error);

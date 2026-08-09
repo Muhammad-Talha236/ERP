@@ -109,6 +109,58 @@ export const Wage = {
     return result.rows.map(mapWageRow);
   },
 
+  /**
+   * findOverviewByTenant — LEFT JOINs every active employee against
+   * their wage record (if any) for the given month/year, so the
+   * payroll page can always show every employee's base salary and
+   * a "Not Generated" status instead of just the wage rows that
+   * happen to already exist.
+   */
+  findOverviewByTenant: async (tenantId, { month, year } = {}) => {
+    const now = new Date();
+    const m = Number(month) || now.getMonth() + 1;
+    const y = Number(year) || now.getFullYear();
+
+    const query = `
+      SELECT
+        e.id AS employee_id,
+        e.first_name, e.last_name, e.department, e.salary_type,
+        e.base_salary,
+        w.id AS wage_id,
+        w.status,
+        w.gross_amount, w.overtime_amount, w.deductions, w.net_amount,
+        w.amount_paid, w.payment_status,
+        w.pay_period_start, w.pay_period_end
+      FROM employees e
+      LEFT JOIN wages w
+        ON w.employee_id = e.id
+        AND w.tenant_id = e.tenant_id
+        AND EXTRACT(MONTH FROM w.pay_period_start) = $2
+        AND EXTRACT(YEAR FROM w.pay_period_start) = $3
+      WHERE e.tenant_id = $1 AND e.status != 'Inactive'
+      ORDER BY e.first_name, e.last_name
+    `;
+    const result = await pool.query(query, [tenantId, m, y]);
+
+    return result.rows.map((row) => ({
+      employeeId: row.employee_id,
+      employeeName: `${row.first_name} ${row.last_name}`,
+      department: row.department,
+      salaryType: row.salary_type,
+      baseSalary: parseFloat(row.base_salary || 0),
+      wageId: row.wage_id,
+      status: row.status || 'Not Generated',
+      grossAmount: row.gross_amount !== null ? parseFloat(row.gross_amount) : 0,
+      overtimeAmount: row.overtime_amount !== null ? parseFloat(row.overtime_amount) : 0,
+      deductions: row.deductions !== null ? parseFloat(row.deductions) : 0,
+      netAmount: row.net_amount !== null ? parseFloat(row.net_amount) : 0,
+      amountPaid: row.amount_paid !== null ? parseFloat(row.amount_paid) : 0,
+      paymentStatus: row.payment_status || 'Pending',
+      payPeriodStart: row.pay_period_start,
+      payPeriodEnd: row.pay_period_end,
+    }));
+  },
+
   findById: async (id, tenantId) => {
     const result = await pool.query(
       `SELECT w.*, e.first_name || ' ' || e.last_name AS employee_name, e.department
@@ -123,11 +175,17 @@ export const Wage = {
    * generatePayroll — the core Attendance → Earnings → Deductions →
    * Net Payable pipeline. One employee, one pay period.
    *
+   * Overtime hours are pulled from Attendance for this period exactly
+   * as recorded — the caller only supplies `overtimeRate` ($/hour);
+   * overtimeAmount = overtimeHours * overtimeRate. No separate
+   * "1.5x hourly rate" auto-calc anymore — the admin controls the
+   * rate directly, as requested.
+   *
    * Prevents duplicates: if a wage record already exists for this
    * employee/period and its status has moved past 'Draft'/'Calculated',
    * generation is refused (recompute Draft/Calculated ones freely).
    */
-  generatePayroll: async (tenantId, { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, notes }) => {
+  generatePayroll: async (tenantId, { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes }) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -174,15 +232,15 @@ export const Wage = {
       } else if (salaryType === 'Daily') {
         basicPay = baseSalary * presentDays;
       } else {
-        // Piece Rate: no attendance-based basic pay component here —
-        // production wages are credited separately (see wage.mock
-        // equivalent creditProductionWage flow already used elsewhere).
-        basicPay = 0;
+        basicPay = 0; // Piece Rate handled elsewhere
       }
 
       const dailyRate = workingDays > 0 ? baseSalary / workingDays : 0;
-      const hourlyRate = dailyRate / 8;
-      const overtimeAmount = Number((overtimeHours * hourlyRate * 1.5).toFixed(2));
+
+      // Overtime: hours from attendance x admin-set $/hour rate. Simple,
+      // predictable, and fully under the admin's control.
+      const overtimeRateAmt = Number(overtimeRate || 0);
+      const overtimeAmount = Number((overtimeHours * overtimeRateAmt).toFixed(2));
 
       const allowancesAmt = Number(allowances || 0);
       const bonusesAmt = Number(bonuses || 0);
@@ -355,8 +413,6 @@ export const Wage = {
         [wageId, wage.employee_id, type, amount, remarks || null]
       );
 
-      // Once fully paid, apply the recovery to the linked advances/loans
-      // so their running balances actually move.
       if (nowFullyPaid) {
         const deductions = await client.query('SELECT * FROM wage_deductions WHERE wage_id = $1', [wageId]);
         for (const d of deductions.rows) {

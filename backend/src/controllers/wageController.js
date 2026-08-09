@@ -18,24 +18,18 @@ export const createWage = async (req, res) => {
   }
 };
 
-/**
- * POST /api/wages/generate — the main payroll button. Pulls
- * attendance + employee salary, calculates earnings/deductions
- * (including pending advances/loans), and creates/updates a
- * Draft->Calculated wage record for one employee/period.
- */
 export const generatePayroll = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
     if (!tenantId) return res.status(400).json({ message: 'Tenant ID required' });
 
-    const { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, notes } = req.body;
+    const { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes } = req.body;
     if (!employeeId || !payPeriodStart || !payPeriodEnd) {
       return res.status(400).json({ message: 'employeeId, payPeriodStart and payPeriodEnd are required' });
     }
 
     const wage = await Wage.generatePayroll(tenantId, {
-      employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, notes,
+      employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, overtimeRate, notes,
     });
 
     res.status(201).json({ success: true, message: 'Payroll calculated successfully', wage });
@@ -76,6 +70,26 @@ export const getWages = async (req, res) => {
     res.json({ success: true, wages });
   } catch (error) {
     console.error('Get wages error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * GET /api/wages/overview — every active employee for the tenant,
+ * joined against their wage record for the given month/year (if any).
+ * Powers the payroll table so employees without a generated payroll
+ * still show up with their base salary and a "Not Generated" status.
+ */
+export const getWagesOverview = async (req, res) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    if (!tenantId) return res.status(400).json({ message: 'Tenant ID required' });
+
+    const { month, year } = req.query;
+    const overview = await Wage.findOverviewByTenant(tenantId, { month, year });
+    res.json({ success: true, overview });
+  } catch (error) {
+    console.error('Get wages overview error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

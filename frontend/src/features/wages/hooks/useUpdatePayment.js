@@ -10,6 +10,7 @@ export function useUpdatePayment() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wages'] });
+      queryClient.invalidateQueries({ queryKey: ['wagesOverview'] });
       if (data?.wage?.id) {
         queryClient.invalidateQueries({ queryKey: ['wages', data.wage.id, 'payments'] });
       }

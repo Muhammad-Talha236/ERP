@@ -1,22 +1,33 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { WageStatsCards } from './components/WageStatsCards';
-import { PayrollTable } from './components/PayrollTable';
+import { PayrollOverviewTable } from './components/PayrollOverviewTable';
 import { PayWageModal } from './components/PayWageModal';
 import { GeneratePayrollModal } from './components/GeneratePayrollModal';
 import { AdvancesLoansPanel } from './components/AdvancesLoansPanel';
 import { Button } from '@/components/ui/Button';
 import { Plus } from 'lucide-react';
 import { ErrorState } from '@/components/feedback/ErrorState';
+import { useWagesOverview } from './hooks/useWagesOverview';
 import { useWages } from './hooks/useWages';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 export function WagesPage() {
-  const { data: wages, isLoading, isError, refetch } = useWages();
-  const [payModal, setPayModal] = useState({ open: false, wageId: null });
-  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const year = today.getFullYear();
 
-  const monthLabel = format(new Date(), 'MMMM');
+  const { data: overview, isLoading, isError, refetch } = useWagesOverview({ month, year });
+  // Still used for the top stats cards (aggregates across records) and
+  // to feed PayWageModal a "live" wage object after mutations.
+  const { data: wages } = useWages();
+
+  const [payModal, setPayModal] = useState({ open: false, wageId: null });
+  const [generateModal, setGenerateModal] = useState({ open: false, employeeId: null });
+
+  const monthLabel = format(today, 'MMMM');
+  const periodStart = format(startOfMonth(today), 'yyyy-MM-dd');
+  const periodEnd = format(endOfMonth(today), 'yyyy-MM-dd');
 
   const liveWage = payModal.wageId
     ? (wages ?? []).find((w) => w.id === payModal.wageId) ?? null
@@ -38,16 +49,18 @@ export function WagesPage() {
         <div className="rounded-card border border-border bg-background">
           <div className="px-6 pt-6 flex items-center justify-between">
             <h3 className="text-lg font-bold text-text-primary">{monthLabel} payroll run</h3>
-            <Button size="sm" onClick={() => setGenerateModalOpen(true)}>
+            <Button size="sm" onClick={() => setGenerateModal({ open: true, employeeId: null })}>
               <Plus size={16} className="mr-1.5" /> Generate Payroll
             </Button>
           </div>
 
           <div className="px-6 pb-6 pt-4">
-            <PayrollTable
-              wages={wages}
+            <PayrollOverviewTable
+              rows={overview}
               isLoading={isLoading}
-              onPayClick={(wage) => setPayModal({ open: true, wageId: wage.id })}
+              onGenerateClick={(row) => setGenerateModal({ open: true, employeeId: row.employeeId })}
+              onEditClick={(row) => setGenerateModal({ open: true, employeeId: row.employeeId })}
+              onPayClick={(row) => setPayModal({ open: true, wageId: row.wageId })}
             />
           </div>
         </div>
@@ -61,7 +74,13 @@ export function WagesPage() {
         wage={liveWage}
       />
 
-      <GeneratePayrollModal open={generateModalOpen} onOpenChange={setGenerateModalOpen} />
+      <GeneratePayrollModal
+        open={generateModal.open}
+        onOpenChange={(open) => setGenerateModal({ open, employeeId: open ? generateModal.employeeId : null })}
+        initialEmployeeId={generateModal.employeeId}
+        initialPeriodStart={periodStart}
+        initialPeriodEnd={periodEnd}
+      />
     </AppLayout>
   );
 }

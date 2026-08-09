@@ -10,6 +10,7 @@ export function useGeneratePayroll() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wages'] });
+      queryClient.invalidateQueries({ queryKey: ['wagesOverview'] });
     },
   });
 }
