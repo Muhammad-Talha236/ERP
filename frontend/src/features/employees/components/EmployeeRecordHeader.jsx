@@ -5,13 +5,6 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { getEmployeeStatusVariant } from '../utils/employeeStatusVariant';
 
-/**
- * EmployeeRecordHeader — top banner of the Employee Record page:
- * back link, large avatar, name, role, department, and status.
- *
- * @param {Object} props
- * @param {Employee} props.employee
- */
 export function EmployeeRecordHeader({ employee }) {
   const fullName = `${employee.firstName} ${employee.lastName}`;
 
@@ -25,17 +18,17 @@ export function EmployeeRecordHeader({ employee }) {
         Back to Employees
       </Link>
 
-      <div className="flex items-center gap-4 rounded-card border border-border bg-background p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-card border border-border bg-background p-4 sm:p-6">
         <Avatar name={fullName} imageUrl={employee.profileImage} size="lg" />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-xl font-bold text-text-primary">{fullName}</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary truncate">{fullName}</h2>
             <Badge variant={getEmployeeStatusVariant(employee.status)}>
               {employee.status}
             </Badge>
           </div>
-          <p className="text-sm text-text-secondary mt-1">
+          <p className="text-sm text-text-secondary mt-1 truncate">
             {employee.designation} · {employee.department}
           </p>
           <p className="text-xs text-text-secondary mt-0.5">

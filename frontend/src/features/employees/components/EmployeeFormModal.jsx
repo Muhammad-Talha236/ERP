@@ -62,16 +62,16 @@ export function EmployeeFormModal({ open, onOpenChange, employee }) {
       size="lg"
       footer={
         <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Add Employee'}
           </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="Employee Code" required error={errors.employeeCode?.message} {...register('employeeCode')} />
         <Select
           label="Status"
@@ -118,16 +118,13 @@ export function EmployeeFormModal({ open, onOpenChange, employee }) {
           label="Salary Type"
           required
           error={errors.salaryType?.message}
-          options={[
-            { label: 'Monthly', value: 'Monthly' },
-      
-          ]}
+          options={[{ label: 'Monthly', value: 'Monthly' }]}
           {...register('salaryType')}
         />
         <Input label="Base Salary" type="number" step="0.01" required error={errors.baseSalary?.message} {...register('baseSalary')} />
 
         {serverError && (
-          <p className="col-span-2 text-sm text-danger bg-danger/10 border border-danger/30 rounded-input px-3 py-2">
+          <p className="col-span-1 sm:col-span-2 text-sm text-danger bg-danger/10 border border-danger/30 rounded-input px-3 py-2">
             {serverError}
           </p>
         )}

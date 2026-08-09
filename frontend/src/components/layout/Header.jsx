@@ -1,49 +1,57 @@
-import { PanelLeft, Bell } from 'lucide-react';
+import { Menu, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchBar } from './SearchBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { NotificationBell } from './NotificationBell';
 import { useUIStore } from '@/store/uiStore';
 
 /**
  * Header — top bar shown above every page's content.
  *
- * @param {Object} props
- * @param {string} props.title - page title (e.g. "Employees")
- * @param {string} props.subtitle - page description (e.g. "Manage your workforce")
+ * The menu button is smart: on phone (<768px) it opens the sidebar
+ * drawer, on tablet/desktop it collapses/expands the in-flow
+ * sidebar — same button, different behavior based on screen size.
  *
- * title/subtitle are passed by each individual page component, so
- * the same Header renders differently per route without any
- * route-based conditional logic living inside Header itself.
+ * On phone the search bar drops to its own full-width row below the
+ * main header row instead of squeezing into it.
  */
 export function Header({ title, subtitle }) {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
+  const toggleMobileMenu = useUIStore((state) => state.toggleMobileMenu);
+
+  const handleMenuClick = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      toggleMobileMenu();
+    } else {
+      toggleSidebar();
+    }
+  };
 
   return (
-    <header className="flex items-center gap-4 px-6 py-4 border-b border-border bg-background">
-      {/* Sidebar collapse toggle */}
-      <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
-        <PanelLeft size={18} />
-      </Button>
+    <header className="border-b border-border bg-background">
+      <div className="flex items-center gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-4">
+        <Button variant="ghost" size="icon" onClick={handleMenuClick} aria-label="Toggle menu" className="shrink-0">
+          <Menu size={18} className="md:hidden" />
+          <PanelLeft size={18} className="hidden md:block" />
+        </Button>
 
-      {/* Page title + subtitle */}
-      <div className="min-w-[180px]">
-        <h1 className="text-xl font-bold text-text-primary leading-tight">{title}</h1>
-        <p className="text-sm text-text-secondary leading-tight">{subtitle}</p>
+        <div className="min-w-0 flex-1 md:flex-initial md:min-w-[180px]">
+          <h1 className="text-lg md:text-xl font-bold text-text-primary leading-tight truncate">{title}</h1>
+          <p className="hidden sm:block text-sm text-text-secondary leading-tight truncate">{subtitle}</p>
+        </div>
+
+        {/* Search bar inline — tablet/desktop only */}
+        <SearchBar className="hidden md:flex mx-auto" />
+
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+          <ThemeToggle />
+          <NotificationBell />
+        </div>
       </div>
 
-      {/* Search bar takes remaining space */}
-      <SearchBar className="mx-auto" />
-
-      {/* Right-side actions */}
-      <div className="flex items-center gap-2">
-        <ThemeToggle />
-
-        <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-          <Bell size={18} />
-          {/* Notification indicator dot — static for now, will reflect
-              real unread count once notification API exists */}
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-danger" />
-        </Button>
+      {/* Search bar as its own full-width row — phone only */}
+      <div className="px-4 pb-3 md:hidden">
+        <SearchBar />
       </div>
     </header>
   );

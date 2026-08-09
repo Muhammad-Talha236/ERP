@@ -7,18 +7,9 @@ import { cn } from '@/lib/utils';
  * EmployeeFilters — search input + department dropdown above the
  * employee table.
  *
- * Deliberately "controlled" — it doesn't hold its own state. The
- * parent (EmployeesPage) owns the filters object and passes down
- * both the current values and a change handler. This keeps
- * EmployeesPage as the single source of truth that feeds
- * useEmployees(filters), so the table and filter UI can never
- * drift out of sync.
- *
- * @param {Object} props
- * @param {{search: string, department: string}} props.filters
- * @param {(next: object) => void} props.onFilterChange
- * @param {string[]} props.departmentOptions
- * @param {() => void} props.onAddClick
+ * Responsive: on phone, everything stacks into full-width rows
+ * (search on its own line, then filters, then a full-width
+ * "Add Employee" button) instead of squeezing into one cramped row.
  */
 export function EmployeeFilters({
   filters,
@@ -27,9 +18,9 @@ export function EmployeeFilters({
   onAddClick,
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
       {/* Search input */}
-      <div className="relative flex-1 min-w-[240px]">
+      <div className="relative flex-1 min-w-0 sm:min-w-[240px]">
         <Search
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none"
@@ -48,29 +39,31 @@ export function EmployeeFilters({
         />
       </div>
 
-      {/* Department dropdown */}
-      <select
-        value={filters.department}
-        onChange={(e) => onFilterChange({ ...filters, department: e.target.value })}
-        className={cn(
-          'h-10 px-3 rounded-input text-sm min-w-[180px]',
-          'bg-background border border-border text-text-primary',
-          'focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary'
-        )}
-      >
-        <option value="all">All departments</option>
-        {departmentOptions.map((dept) => (
-          <option key={dept} value={dept}>
-            {dept}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-3">
+        {/* Department dropdown */}
+        <select
+          value={filters.department}
+          onChange={(e) => onFilterChange({ ...filters, department: e.target.value })}
+          className={cn(
+            'flex-1 sm:flex-initial h-10 px-3 rounded-input text-sm min-w-0 sm:min-w-[180px]',
+            'bg-background border border-border text-text-primary',
+            'focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary'
+          )}
+        >
+          <option value="all">All departments</option>
+          {departmentOptions.map((dept) => (
+            <option key={dept} value={dept}>
+              {dept}
+            </option>
+          ))}
+        </select>
 
-      <Button variant="outline" size="icon" aria-label="More filters">
-        <Filter size={16} />
-      </Button>
+        <Button variant="outline" size="icon" aria-label="More filters" className="shrink-0">
+          <Filter size={16} />
+        </Button>
+      </div>
 
-      <Button onClick={onAddClick} className="ml-auto">
+      <Button onClick={onAddClick} className="w-full sm:w-auto sm:ml-auto justify-center">
         + Add Employee
       </Button>
     </div>
