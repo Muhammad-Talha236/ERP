@@ -18,6 +18,16 @@ const getStatusVariant = (status) => {
   }
 };
 
+/**
+ * LeaveRequestsTable — table on tablet/desktop, stacked cards on
+ * phone. Previously this was an 8-column table (EMPLOYEE, TYPE,
+ * FROM, TO, STATUS, ACTIONS, EDIT, DELETE) inside a horizontally
+ * scrolling wrapper — on phone that meant the user had to swipe
+ * sideways through multiple screens just to see one row's status
+ * or delete button. Same fix pattern as the Attendance page: a
+ * dedicated mobile card layout with everything visible at once,
+ * no side-scrolling needed.
+ */
 export function LeaveRequestsTable({ requests, isLoading, onNewRequestClick, onEditClick, onDeleteClick, onUpdateStatus }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
@@ -31,8 +41,10 @@ export function LeaveRequestsTable({ requests, isLoading, onNewRequestClick, onE
   const validPage = Math.min(currentPage, totalPages);
   const currentData = safeRequests.slice((validPage - 1) * itemsPerPage, validPage * itemsPerPage);
 
+  const safeFormatDate = (dateStr) => (dateStr ? format(new Date(dateStr), 'MMM d, yyyy') : '-');
+
   return (
-  <div className="rounded-card border border-border bg-background p-4 sm:p-6 space-y-4">
+    <div className="rounded-card border border-border bg-background p-4 sm:p-6 space-y-4">
       {/* Header section: Mobile par title aur button neechay neechay adjust ho jayein */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -52,8 +64,8 @@ export function LeaveRequestsTable({ requests, isLoading, onNewRequestClick, onE
         />
       ) : (
         <div className="flex flex-col flex-1 justify-between">
-          {/* Scrollable container taake mobile par table text cut na ho aur easily swipe ho sakay */}
-          <div className="w-full overflow-x-auto pb-2">
+          {/* Tablet/desktop: full table */}
+          <div className="hidden md:block w-full overflow-x-auto pb-2">
             <table className="w-full min-w-[650px] text-left border-collapse">
               <thead>
                 <tr className="border-b border-border">
@@ -75,10 +87,10 @@ export function LeaveRequestsTable({ requests, isLoading, onNewRequestClick, onE
                     </td>
                     <td className="py-4 px-3 text-sm text-text-secondary whitespace-nowrap">{request.type}</td>
                     <td className="py-4 px-3 text-sm text-text-secondary whitespace-nowrap">
-                      {request.fromDate ? format(new Date(request.fromDate), 'MMM d, yyyy') : '-'}
+                      {safeFormatDate(request.fromDate)}
                     </td>
                     <td className="py-4 px-3 text-sm text-text-secondary whitespace-nowrap">
-                      {request.toDate ? format(new Date(request.toDate), 'MMM d, yyyy') : '-'}
+                      {safeFormatDate(request.toDate)}
                     </td>
                     <td className="py-4 px-3 whitespace-nowrap">
                       <Badge variant={getStatusVariant(request.status)}>
@@ -135,6 +147,71 @@ export function LeaveRequestsTable({ requests, isLoading, onNewRequestClick, onE
             </table>
           </div>
 
+          {/* Phone: stacked cards, everything visible without side-scrolling */}
+          <div className="md:hidden space-y-3">
+            {currentData.map((request) => (
+              <div key={request.id} className="rounded-input border border-border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary truncate">
+                      {request.employeeName || 'Unknown Employee'}
+                    </p>
+                    <p className="text-xs text-text-secondary mt-0.5">{request.type}</p>
+                  </div>
+                  <Badge variant={getStatusVariant(request.status)}>{request.status}</Badge>
+                </div>
+
+                <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
+                  <span>From: <span className="text-text-primary font-medium">{safeFormatDate(request.fromDate)}</span></span>
+                  <span>To: <span className="text-text-primary font-medium">{safeFormatDate(request.toDate)}</span></span>
+                </div>
+
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-success hover:bg-success/15"
+                      onClick={() => onUpdateStatus?.(request.id, 'Approved')}
+                      title="Approve"
+                    >
+                      <Check size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-danger hover:bg-danger/15"
+                      onClick={() => onUpdateStatus?.(request.id, 'Rejected')}
+                      title="Reject"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-text-secondary hover:text-text-primary"
+                      onClick={() => onEditClick(request)}
+                      title="Edit Request"
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-danger hover:bg-danger/15"
+                      onClick={() => onDeleteClick(request.id)}
+                      title="Delete Request"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
@@ -150,7 +227,7 @@ export function LeaveRequestsTable({ requests, isLoading, onNewRequestClick, onE
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={validPage === 1}
                 >
-                  <ChevronLeft size5={14} />
+                  <ChevronLeft size={14} />
                 </Button>
                 <span className="text-xs font-bold text-text-primary w-8 text-center">
                   {validPage}/{totalPages}
