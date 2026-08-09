@@ -120,8 +120,7 @@ export function EmployeeFormModal({ open, onOpenChange, employee }) {
           error={errors.salaryType?.message}
           options={[
             { label: 'Monthly', value: 'Monthly' },
-            { label: 'Daily', value: 'Daily' },
-            { label: 'Piece Rate', value: 'Piece Rate' },
+      
           ]}
           {...register('salaryType')}
         />
