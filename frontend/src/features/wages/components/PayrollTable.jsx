@@ -4,8 +4,8 @@ import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { Wallet } from 'lucide-react';
 
+// change:
 const COLUMNS = ['EMPLOYEE', 'DEPARTMENT', 'BASE', 'OVERTIME', 'DEDUCTIONS', 'NET', 'STATUS', ''];
-
 /**
  * PayrollTable — payroll table body.
  *

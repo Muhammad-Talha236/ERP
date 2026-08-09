@@ -11,7 +11,7 @@ export function useWages(filters = {}) {
   return useQuery({
     queryKey: ['wages', filters],
     queryFn: async () => {
-      const response = await api.get('/wages', { params: filters });
+      const response = await api.get('/wages', { params: filters }); // now also accepts payrollStatus, month, year
       return response.wages || response.data || response;
     },
   });

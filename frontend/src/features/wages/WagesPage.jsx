@@ -3,6 +3,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { WageStatsCards } from './components/WageStatsCards';
 import { PayrollTable } from './components/PayrollTable';
 import { PayWageModal } from './components/PayWageModal';
+import { GeneratePayrollModal } from './components/GeneratePayrollModal';
+import { AdvancesLoansPanel } from './components/AdvancesLoansPanel';
 import { Button } from '@/components/ui/Button';
 import { Plus } from 'lucide-react';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -16,7 +18,6 @@ export function WagesPage() {
 
   const monthLabel = format(new Date(), 'MMMM');
 
-  // FIX: same as PO — live lookup instead of stale snapshot
   const liveWage = payModal.wageId
     ? (wages ?? []).find((w) => w.id === payModal.wageId) ?? null
     : null;
@@ -50,6 +51,8 @@ export function WagesPage() {
             />
           </div>
         </div>
+
+        <AdvancesLoansPanel />
       </div>
 
       <PayWageModal
@@ -57,6 +60,8 @@ export function WagesPage() {
         onOpenChange={(open) => setPayModal({ open, wageId: open ? payModal.wageId : null })}
         wage={liveWage}
       />
+
+      <GeneratePayrollModal open={generateModalOpen} onOpenChange={setGenerateModalOpen} />
     </AppLayout>
   );
 }

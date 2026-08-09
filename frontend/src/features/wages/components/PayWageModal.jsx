@@ -35,6 +35,8 @@ export function PayWageModal({ open, onOpenChange, wage }) {
       .positive('Amount must be greater than 0')
       .max(remaining, `Amount cannot exceed the remaining balance of $${remaining.toLocaleString()}`),
     type: z.enum(['Payment', 'Advance']),
+    paymentMethod: z.string().optional(),
+paymentReference: z.string().optional(),
     remarks: z.string().optional(),
   });
 
@@ -117,6 +119,18 @@ export function PayWageModal({ open, onOpenChange, wage }) {
                 error={errors.remarks?.message}
                 {...register('remarks')}
               />
+              <Input
+  label="Payment Method"
+  placeholder="e.g. Bank Transfer, Cash"
+  error={errors.paymentMethod?.message}
+  {...register('paymentMethod')}
+/>
+<Input
+  label="Reference"
+  placeholder="e.g. transaction ID"
+  error={errors.paymentReference?.message}
+  {...register('paymentReference')}
+/>
             </div>
 
             {errorMessage && <p className="col-span-2 text-sm text-danger">{errorMessage}</p>}

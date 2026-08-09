@@ -18,13 +18,61 @@ export const createWage = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/wages/generate — the main payroll button. Pulls
+ * attendance + employee salary, calculates earnings/deductions
+ * (including pending advances/loans), and creates/updates a
+ * Draft->Calculated wage record for one employee/period.
+ */
+export const generatePayroll = async (req, res) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    if (!tenantId) return res.status(400).json({ message: 'Tenant ID required' });
+
+    const { employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, notes } = req.body;
+    if (!employeeId || !payPeriodStart || !payPeriodEnd) {
+      return res.status(400).json({ message: 'employeeId, payPeriodStart and payPeriodEnd are required' });
+    }
+
+    const wage = await Wage.generatePayroll(tenantId, {
+      employeeId, payPeriodStart, payPeriodEnd, allowances, bonuses, otherEarnings, otherDeductions, notes,
+    });
+
+    res.status(201).json({ success: true, message: 'Payroll calculated successfully', wage });
+  } catch (error) {
+    console.error('Generate payroll error:', error);
+    res.status(400).json({ message: error.message || 'Failed to generate payroll' });
+  }
+};
+
+export const approveWage = async (req, res) => {
+  try {
+    const tenantId = req.user.tenant_id;
+    const wage = await Wage.approve(req.params.id, tenantId, req.user.id);
+    res.json({ success: true, message: 'Payroll approved', wage });
+  } catch (error) {
+    console.error('Approve wage error:', error);
+    res.status(400).json({ message: error.message || 'Server error' });
+  }
+};
+
+export const getWageDeductions = async (req, res) => {
+  try {
+    const breakdown = await Wage.fetchDeductionBreakdown(req.params.id);
+    res.json({ success: true, deductions: breakdown });
+  } catch (error) {
+    console.error('Get wage deductions error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const getWages = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
     if (!tenantId) return res.status(400).json({ message: 'Tenant ID required' });
 
-    const { employeeId, status } = req.query;
-    const wages = await Wage.findByTenant(tenantId, { employeeId, status });
+    const { employeeId, status, payrollStatus, month, year } = req.query;
+    const wages = await Wage.findByTenant(tenantId, { employeeId, status, payrollStatus, month, year });
     res.json({ success: true, wages });
   } catch (error) {
     console.error('Get wages error:', error);
@@ -47,10 +95,10 @@ export const getWageById = async (req, res) => {
 export const recordPayment = async (req, res) => {
   try {
     const tenantId = req.user.tenant_id;
-    const { amount, type, remarks } = req.body;
+    const { amount, type, remarks, paymentMethod, paymentReference } = req.body;
     if (!amount || !type) return res.status(400).json({ message: 'amount and type are required' });
 
-    const result = await Wage.recordPayment(req.params.id, tenantId, { amount, type, remarks });
+    const result = await Wage.recordPayment(req.params.id, tenantId, { amount, type, remarks, paymentMethod, paymentReference });
     res.status(201).json({ success: true, message: 'Payment recorded successfully', ...result });
   } catch (error) {
     console.error('Record payment error:', error);

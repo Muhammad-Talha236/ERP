@@ -1,22 +1,21 @@
 import PropTypes from 'prop-types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { getWageStatusVariant } from '../utils/wageStatusVariant';
+import { getWageStatusVariant, getPayrollStatusVariant } from '../utils/wageStatusVariant';
+import { useApproveWage } from '../hooks/useApproveWage';
 
 /**
- * PayrollRow — a single row in the payroll table.
- *
- * Single "Pay" action opens PayWageModal, where the admin chooses
- * Payment vs Advance from the Type dropdown inside the form itself —
- * no separate button needed since the dropdown already covers both.
- *
- * @param {Object} props
- * @param {WageRecord} props.wage
- * @param {(wage: WageRecord) => void} props.onPayClick
+ * PayrollRow — one row in the payroll table. Now carries the
+ * payroll WORKFLOW status (Draft/Calculated/Approved/Paid)
+ * alongside the payment status, with an inline Approve action
+ * once it's Calculated.
  */
 export function PayrollRow({ wage, onPayClick }) {
   const remaining = wage.netAmount - wage.amountPaid;
-  const canPay = remaining > 0;
+  const canPay = wage.status === 'Approved' && remaining > 0;
+  const canApprove = wage.status === 'Calculated';
+
+  const { mutate: approve, isPending: isApproving } = useApproveWage();
 
   return (
     <tr className="border-b border-border last:border-0">
@@ -36,14 +35,26 @@ export function PayrollRow({ wage, onPayClick }) {
         )}
       </td>
       <td className="py-4">
-        <Badge variant={getWageStatusVariant(wage.paymentStatus)}>{wage.paymentStatus}</Badge>
+        <div className="flex flex-col gap-1 items-start">
+          <Badge variant={getPayrollStatusVariant(wage.status)}>{wage.status}</Badge>
+          {wage.status === 'Approved' || wage.status === 'Paid' ? (
+            <Badge variant={getWageStatusVariant(wage.paymentStatus)}>{wage.paymentStatus}</Badge>
+          ) : null}
+        </div>
       </td>
       <td className="py-4 text-right">
-        {canPay && (
-          <Button variant="outline" size="sm" onClick={() => onPayClick(wage)}>
-            Pay
-          </Button>
-        )}
+        <div className="flex items-center justify-end gap-2">
+          {canApprove && (
+            <Button variant="outline" size="sm" onClick={() => approve(wage.id)} disabled={isApproving}>
+              {isApproving ? 'Approving...' : 'Approve'}
+            </Button>
+          )}
+          {canPay && (
+            <Button variant="outline" size="sm" onClick={() => onPayClick(wage)}>
+              Pay
+            </Button>
+          )}
+        </div>
       </td>
     </tr>
   );

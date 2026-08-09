@@ -14,6 +14,8 @@ import materialRoutes from './routes/materialRoutes.js';
 import wageRoutes from './routes/wageRoutes.js';
 import purchaseOrderRoutes from './routes/purchaseOrderRoutes.js';
 import dailyUsageRoutes from './routes/dailyUsageRoutes.js';
+import advanceRoutes from './routes/advanceRoutes.js';
+import loanRoutes from './routes/loanRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -50,6 +52,8 @@ app.use('/api/materials', materialRoutes);
 app.use('/api/wages', wageRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/daily-usage', dailyUsageRoutes);
+app.use('/api/advances', advanceRoutes);
+app.use('/api/loans', loanRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({

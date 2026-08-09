@@ -3,23 +3,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { EmployeeRecordHeader } from './components/EmployeeRecordHeader';
 import { EmployeeInfoCard } from './components/EmployeeInfoCard';
 import { EmployeeWorkHistoryList } from './components/EmployeeWorkHistoryList';
+import { EmployeePayrollSummary } from './components/EmployeePayrollSummary';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton';
 import { useEmployee } from './hooks/useEmployee';
 import { useEmployeeWorkHistory } from './hooks/useEmployeeWorkHistory';
 
-/**
- * EmployeeRecordPage — individual employee detail page.
- *
- * FIX: useParams now uses { strict: false } instead of a "from"
- * path string. Strict matching by path string relies on TanStack
- * Router's generated route-tree TYPES to resolve correctly — since
- * we're intentionally JS-only (no TypeScript route registration),
- * that strict lookup was unreliable and returned undefined params.
- * { strict: false } instead grabs whatever params exist from
- * wherever the router currently is, which works correctly regardless
- * of type registration.
- */
 export function EmployeeRecordPage() {
   const { employeeId } = useParams({ strict: false });
 
@@ -57,6 +46,8 @@ export function EmployeeRecordPage() {
           <EmployeeInfoCard employee={employee} />
           <EmployeeWorkHistoryList entries={workHistory} isLoading={isHistoryLoading} />
         </div>
+
+        <EmployeePayrollSummary employee={employee} />
       </div>
     </AppLayout>
   );
