@@ -1,5 +1,5 @@
-import { Tenant } from '../models/Tenant.js';
-import { User } from '../models/User.js';
+import { Tenant } from '../models/tenant.js';
+import { User } from '../models/user.js';
 
 export const createTenant = async (req, res) => {
   try {
