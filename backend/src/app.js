@@ -31,7 +31,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://your-frontend.vercel.app', // deploy ke baad yahan real URL daalein
+    'https://factory-management-erp.vercel.app', // deploy ke baad yahan real URL daalein
   ],
   credentials: true,
 }));
