@@ -132,17 +132,17 @@ export function PODetailModal({ open, onOpenChange, po }) {
     >
       {mode === 'view' ? (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={getPOStatusVariant(po.status)}>{po.status || 'Draft'}</Badge>
               <Badge variant={getPOPaymentVariant(po.paymentStatus)}>{po.paymentStatus || 'Unpaid'}</Badge>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setMode('edit')}>
+            <Button variant="outline" size="sm" onClick={() => setMode('edit')} className="self-start sm:self-auto">
               <Pencil size={14} /> Edit
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-text-secondary">Created</p>
               <p className="text-text-primary font-medium">{safeFormatDate(po.createdDate)}</p>
@@ -163,9 +163,9 @@ export function PODetailModal({ open, onOpenChange, po }) {
             <p className="text-sm font-semibold text-text-primary mb-2">Items</p>
             <div className="rounded-input border border-border divide-y divide-border">
               {(po.items ?? []).map((item, i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-2 text-sm">
-                  <span className="text-text-primary">{item.materialName || 'Material'}</span>
-                  <span className="text-text-secondary">
+                <div key={i} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
+                  <span className="text-text-primary min-w-0 truncate">{item.materialName || 'Material'}</span>
+                  <span className="text-text-secondary shrink-0 whitespace-nowrap">
                     {Number(item.quantity ?? 0)} × ${Number(item.unitPrice ?? 0).toLocaleString()}
                   </span>
                 </div>
@@ -184,7 +184,10 @@ export function PODetailModal({ open, onOpenChange, po }) {
             {remaining <= 0 ? (
               <p className="text-sm text-success font-semibold">This order has been paid in full.</p>
             ) : (
-              <form onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+              <form
+                onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)}
+                className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 sm:items-end"
+              >
                 <Input
                   label="Amount"
                   type="number"
@@ -200,7 +203,7 @@ export function PODetailModal({ open, onOpenChange, po }) {
                   ]}
                   {...paymentForm.register('type')}
                 />
-                <Button type="submit" disabled={isPaying}>
+                <Button type="submit" disabled={isPaying} className="w-full sm:w-auto justify-center">
                   {isPaying ? 'Recording...' : 'Record'}
                 </Button>
               </form>
@@ -225,7 +228,7 @@ export function PODetailModal({ open, onOpenChange, po }) {
         </div>
       ) : (
         <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Supplier"
               required
@@ -254,13 +257,15 @@ export function PODetailModal({ open, onOpenChange, po }) {
             </div>
             <div className="space-y-3">
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2">
+                <div key={field.id} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
                   <Input placeholder="Material name" {...editForm.register(`items.${index}.materialName`)} />
-                  <Input type="number" placeholder="Qty" className="w-20" {...editForm.register(`items.${index}.quantity`)} />
-                  <Input type="number" step="0.01" placeholder="Unit price" className="w-28" {...editForm.register(`items.${index}.unitPrice`)} />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length === 1}>
-                    <Trash2 size={14} className="text-danger" />
-                  </Button>
+                  <div className="grid grid-cols-[1fr_1fr_auto] sm:contents gap-2">
+                    <Input type="number" placeholder="Qty" className="w-full sm:w-20" {...editForm.register(`items.${index}.quantity`)} />
+                    <Input type="number" step="0.01" placeholder="Unit price" className="w-full sm:w-28" {...editForm.register(`items.${index}.unitPrice`)} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length === 1}>
+                      <Trash2 size={14} className="text-danger" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

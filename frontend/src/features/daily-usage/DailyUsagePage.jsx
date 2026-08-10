@@ -67,9 +67,14 @@ export function DailyUsagePage() {
   return (
     <AppLayout title="Daily Usage" subtitle="Material consumption trends">
       <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button onClick={() => setIsFormOpen(true)}>+ Record Usage</Button>
-        </div>
+        <div className="flex w-full justify-end">
+  <Button
+    onClick={() => setIsFormOpen(true)}
+    className="w-full sm:w-auto"
+  >
+    + Record Usage
+  </Button>
+</div>
 
         <ConsumptionChart entries={entries ?? []} />
 

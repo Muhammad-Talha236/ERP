@@ -23,10 +23,20 @@ export function POStatsCards({ purchaseOrders }) {
   const totalValue = purchaseOrders.reduce((sum, po) => sum + po.totalAmount, 0);
 
   return (
-    <div className="flex flex-wrap gap-4">
-      <StatCard label="Open" value={open} icon={FileClock} accent="info" />
-      <StatCard label="Received" value={received} icon={PackageCheck} accent="success" />
-      <StatCard label="Total value" value={`$${totalValue.toLocaleString()}`} icon={DollarSign} accent="primary" />
-    </div>
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+  <StatCard
+    label="Received"
+    value={received}
+    icon={PackageCheck}
+    accent="success"
+  />
+
+  <StatCard
+    label="Total value"
+    value={`$${totalValue.toLocaleString()}`}
+    icon={DollarSign}
+    accent="primary"
+  />
+</div>
   );
 }

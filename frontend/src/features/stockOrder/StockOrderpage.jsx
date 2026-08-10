@@ -36,15 +36,18 @@ export function StockOrderpage() {
   return (
     <AppLayout title="Stock Orders" subtitle="Manage suppliers and invoices">
       <div className="space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <POStatsCards purchaseOrders={purchaseOrders ?? []} />
-          <div className="flex gap-3">
-            <Button variant="secondary">
-              <Download size={16} /> Export
-            </Button>
-            <Button onClick={() => setIsFormOpen(true)}>+ New PO</Button>
-          </div>
-        </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <POStatsCards purchaseOrders={purchaseOrders ?? []} />
+
+  <div className="w-full sm:w-auto">
+    <Button
+      onClick={() => setIsFormOpen(true)}
+      className="w-full sm:w-auto"
+    >
+      + New PO
+    </Button>
+  </div>
+</div>
 
         <POTable
           purchaseOrders={purchaseOrders}
