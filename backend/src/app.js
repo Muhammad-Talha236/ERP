@@ -27,7 +27,14 @@ const app = express();
 // employees added directly in Neon to not show up until this was
 // disabled. API responses should always be fresh, never cached.
 app.disable('etag');
-
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://your-frontend.vercel.app', // deploy ke baad yahan real URL daalein
+  ],
+  credentials: true,
+}));
 // Connect to PostgreSQL
 await connectDB();
 
