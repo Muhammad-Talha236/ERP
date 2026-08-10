@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
-import authRoutes from './routes/authRoutes.js';
+import authRoutes from './routes/authroutes.js';
 import tenantRoutes from './routes/tenantRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import workflowRoutes from './routes/workflowRoutes.js';
