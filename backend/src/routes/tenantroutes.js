@@ -5,7 +5,7 @@ import {
   getTenant,
   updateTenant,
   deleteTenant,
-} from '../controllers/tenantController.js';
+} from '../controllers/tenantcontroller.js';
 import { protect, restrictToSuperAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
