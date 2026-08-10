@@ -102,11 +102,11 @@ export function EmployeePayrollSummary({ employee }) {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
+                  <div className="flex justify-between gap-3 mt-2 text-xs text-text-secondary">
                     <span>
                       Gross: <span className="text-text-primary font-medium">${w.grossAmount.toLocaleString()}</span>
                     </span>
-                    <span className="text-danger">-${w.deductions.toLocaleString()}</span>
+                    <span className="text-danger">Deduction: -${w.deductions.toLocaleString()}</span>
                   </div>
 
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/60">
