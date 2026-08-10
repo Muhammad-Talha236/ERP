@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
 import authRoutes from './routes/authroutes.js';
-import tenantRoutes from './routes/tenantRoutes.js';
+import tenantRoutes from './routes/tenantroutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import workflowRoutes from './routes/workflowRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
