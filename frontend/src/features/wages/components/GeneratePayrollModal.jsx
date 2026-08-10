@@ -143,7 +143,6 @@ export function GeneratePayrollModal({ open, onOpenChange, initialEmployeeId, in
       open={open}
       onOpenChange={onOpenChange}
       title="Generate Payroll"
-      description="Review attendance for the period, then set the basic pay yourself — nothing is calculated automatically from attendance."
       size="lg"
       footer={
         <>
@@ -176,7 +175,7 @@ export function GeneratePayrollModal({ open, onOpenChange, initialEmployeeId, in
 
         {/* Attendance summary — informational only, nothing here auto-calculates pay */}
         <div className="col-span-2 rounded-input border border-border p-4 bg-surface/40">
-          <p className="text-sm font-semibold text-text-primary mb-3">Attendance this period (for your reference)</p>
+          <p className="text-sm font-semibold text-text-primary mb-3">Attendance this period</p>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-xs text-text-secondary mb-1">Present</p>
@@ -191,15 +190,7 @@ export function GeneratePayrollModal({ open, onOpenChange, initialEmployeeId, in
               <p className="text-lg font-bold text-warning">{employeeId ? leaveDays : '—'}</p>
             </div>
           </div>
-          {selectedEmployee && (
-            <p className="text-xs text-text-secondary mt-3">
-              {selectedEmployee.firstName} {selectedEmployee.lastName}'s base salary on file: {' '}
-              <span className="font-semibold text-text-primary">
-                ${Number(selectedEmployee.baseSalary || 0).toLocaleString()}
-              </span>
-              . Use this along with the attendance above to decide the Basic Pay below.
-            </p>
-          )}
+        
         </div>
 
         <div className="col-span-2">
@@ -222,14 +213,14 @@ export function GeneratePayrollModal({ open, onOpenChange, initialEmployeeId, in
           <p className="text-sm font-semibold text-text-primary mb-3">Overtime</p>
           <div className="grid grid-cols-3 gap-4 items-end">
             <div>
-              <p className="text-xs text-text-secondary mb-1">Overtime hours (this period)</p>
+              <p className="text-xs text-text-secondary mb-1"></p>
               <p className="text-lg font-bold text-text-primary">
                 {employeeId ? overtimeHours.toFixed(1) : '—'}
-                <span className="text-xs font-normal text-text-secondary ml-1">hrs</span>
+                <span className="text-xs font-normal text-text-secondary ml-1">hr</span>
               </p>
             </div>
             <Input
-              label="Overtime Rate ($/hour)"
+              label=""
               type="number"
               step="0.01"
               min="0"

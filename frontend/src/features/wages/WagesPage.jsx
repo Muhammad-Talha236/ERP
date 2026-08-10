@@ -72,9 +72,19 @@ export function WagesPage() {
                 </Button>
               </div>
             </div>
-            <Button size="sm" onClick={() => setGenerateModal({ open: true, employeeId: null })}>
-              <Plus size={16} className="mr-1.5" /> Generate Payroll
-            </Button>
+          <Button
+  size="sm"
+  onClick={() =>
+    setGenerateModal({
+      open: true,
+      employeeId: null,
+    })
+  }
+  className="w-full sm:w-auto"
+>
+  <Plus size={16} className="mr-1.5" />
+  Generate Payroll
+</Button>
           </div>
 
           <div className="px-6 pb-6 pt-4">

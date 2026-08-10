@@ -13,26 +13,28 @@ export function WageStatsCards({ wages, monthLabel }) {
   const paidThisMonth = wages.reduce((sum, w) => sum + w.amountPaid, 0);
 
   return (
-    <div className="flex flex-wrap gap-4">
-      <StatCard
-        label={`Total payroll (${monthLabel})`}
-        value={`$${totalPayroll.toLocaleString()}`}
-        icon={Wallet}
-        accent="primary"
-      />
-      <StatCard
-        label="Pending payments"
-        value={`$${pendingPayments.toLocaleString()}`}
-        icon={Clock}
-        accent="warning"
-      />
-      <StatCard
-        label={`Paid (${monthLabel})`}
-        value={`$${paidThisMonth.toLocaleString()}`}
-        icon={CheckCircle2}
-        accent="success"
-      />
-    </div>
+   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+  <StatCard
+    label={`Total payroll (${monthLabel})`}
+    value={`$${totalPayroll.toLocaleString()}`}
+    icon={Wallet}
+    accent="primary"
+  />
+
+  <StatCard
+    label="Pending payments"
+    value={`$${pendingPayments.toLocaleString()}`}
+    icon={Clock}
+    accent="warning"
+  />
+
+  <StatCard
+    label={`Paid (${monthLabel})`}
+    value={`$${paidThisMonth.toLocaleString()}`}
+    icon={CheckCircle2}
+    accent="success"
+  />
+</div>
   );
 }
 
